@@ -20,10 +20,10 @@ Postgres DB `auth`. Relying parties reach JWKS via the published host URL. Do no
 
 ## Prod
 
-Pull the published image (`ghcr.io/plat5dev/auth:${PLAT5_VERSION}`; tags from this repo’s `v*` releases):
+Pull the published image (`ghcr.io/plat5dev/auth:${AUTH_VERSION}`; tags from this repo’s `v*` releases):
 
 ```bash
-cp .env.template .env   # set secrets + PLAT5_VERSION=v0.1.2
+cp .env.template .env   # set secrets + AUTH_VERSION=v0.1.2
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 

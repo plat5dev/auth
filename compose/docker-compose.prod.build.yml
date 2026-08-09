@@ -6,5 +6,5 @@ services:
       context: ../issuer
       target: prod
       args:
-        VERSION: ${PLAT5_VERSION:-v0.1.2}
-        REVISION: ${PLAT5_REVISION:-}
+        VERSION: ${AUTH_VERSION:-v0.1.2}
+        REVISION: ${AUTH_REVISION:-}

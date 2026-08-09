@@ -25,10 +25,11 @@
 | Email | `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` set | Sent via SMTP |
 | Error | Prod without full SMTP | Startup/send fails closed |
 
-## Compose Postgres
+## Compose
 
 | Variable | Default |
 |----------|---------|
+| `AUTH_VERSION` | Image tag for `ghcr.io/plat5dev/auth` (prod compose; from this repo’s `v*` tags) |
 | `POSTGRES_USER` | `auth` |
 | `POSTGRES_PASSWORD` | (set in prod) |
 | `POSTGRES_DB` | `auth` |

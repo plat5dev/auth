@@ -4,7 +4,7 @@ Optional **reference OIDC IdP** (OpenAuth + password codes + JWKS) for the Plat5
 
 Self-contained: own compose network, own Postgres, own docs. Publish port `5000`; relying parties point at the host/public URL like any external IdP.
 
-Image: `ghcr.io/plat5dev/auth` (multi-arch). Tags are cut from **this** repo: push a `v*` git tag → release workflow builds multi-arch and pushes. Pin with `PLAT5_VERSION` (e.g. `v0.1.2`). In 0.1.x the CLI often uses the same pin string as runtime; tags can diverge later.
+Image: `ghcr.io/plat5dev/auth` (multi-arch). Tags are cut from **this** repo only: push a `v*` git tag → release workflow builds multi-arch and pushes. Pin with **`AUTH_VERSION`** (compose/CLI), independent of Plat5 runtime tags.
 
 ## Layout
 
@@ -30,7 +30,7 @@ docker compose up --build
 
 ```bash
 cd compose
-cp .env.template .env   # set secrets + PLAT5_VERSION
+cp .env.template .env   # set secrets + AUTH_VERSION
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
