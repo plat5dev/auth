@@ -1,6 +1,6 @@
-# Image-mode production stack.
-# Pin: PLAT5_VERSION (image tag from this repo's v* releases, e.g. v0.1.2).
-# Local build: add -f docker-compose.prod.build.yml and --build.
+# Production stack — pulls ghcr.io/plat5dev/auth:${PLAT5_VERSION}.
+# Pin: PLAT5_VERSION (tag from this repo's v* releases, e.g. v0.1.2).
+# Build locally: add -f docker-compose.prod.build.yml and --build.
 name: auth
 
 volumes:
