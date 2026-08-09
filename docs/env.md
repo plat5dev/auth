@@ -10,9 +10,9 @@
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (comma-separated) | `plat5` |
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | See code defaults |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins | See code defaults |
-| `SMTP_HOST` | Password-challenge SMTP host | BYO — provider or host-published MTA; required only when sending email |
-| `SMTP_PORT` | SMTP port | |
-| `SMTP_USER` / `SMTP_PASS` | SMTP auth | If unset and not prod → codes logged; required in prod |
+| `SMTP_HOST` | Password-challenge SMTP host | Required when sending email (no default). BYO provider or host-published MTA |
+| `SMTP_PORT` | SMTP port | `587` |
+| `SMTP_USER` / `SMTP_PASS` | SMTP auth | With `SMTP_HOST`, enables email; if any missing and not prod → codes logged; prod fails closed without full SMTP |
 | `SMTP_FROM` | From address | `noreply@plat5.test` |
 | `SMTP_TLS_INSECURE` | Skip TLS verify (local only) | |
 | `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md) | `prod` disables `/dev/token` |
@@ -21,9 +21,9 @@
 
 | Mode | When | Behavior |
 |------|------|----------|
-| Log | `SMTP_USER`/`SMTP_PASS` unset, `DEPLOYMENT_ENV` ≠ `prod` | Code logged on issuer |
-| Email | SMTP credentials set | Sent via SMTP |
-| Error | Prod without SMTP | Startup/send fails closed |
+| Log | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` incomplete, `DEPLOYMENT_ENV` ≠ `prod` | Code logged on issuer |
+| Email | `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` set | Sent via SMTP |
+| Error | Prod without full SMTP | Startup/send fails closed |
 
 ## Compose Postgres
 

@@ -61,7 +61,7 @@ let prometheus: PrometheusExporter | undefined;
 const serializer = new PrometheusSerializer("", false);
 
 /**
- * Init OTel per auth/docs/telemetry.md.
+ * Init OTel per docs/telemetry.md.
  *
  * Defaults when an OTLP destination is set:
  * - traces → OTLP on (unless OTEL_TRACES_EXPORTER excludes otlp)

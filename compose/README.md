@@ -20,7 +20,7 @@ Postgres DB `auth`. Relying parties reach JWKS via the published host URL. Do no
 
 ## Prod
 
-Image mode (default) — pull `ghcr.io/plat5dev/auth:${PLAT5_VERSION}`:
+Image mode (default) — pull `ghcr.io/plat5dev/auth:${PLAT5_VERSION}` (tags from this repo’s `v*` releases):
 
 ```bash
 cp .env.template .env   # set secrets + PLAT5_VERSION=v0.1.2

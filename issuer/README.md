@@ -47,7 +47,7 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URIs |
 | `AUTH_ALLOWED_AUDIENCES` | Optional audience allowlist (empty = any) |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins |
-| `SMTP_*` | Password challenge email (omit in dev → codes logged) |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Password challenge email (all three required to send; omit in dev → codes logged) |
 | `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | Resource `deployment.environment`; `prod` disables `POST /dev/token` |
 | `OTEL_SERVICE_NAME` | Resource `service.name` (default `issuer`) |
 | `OTEL_SERVICE_NAMESPACE` | Resource `service.namespace` (default `auth`) |

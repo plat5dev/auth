@@ -6,7 +6,9 @@ const smtpLogger = logger.withScope("issuer.provider.password.email");
 let smtpTransporter: nodemailer.Transporter | undefined;
 
 export function smtpConfigured(): boolean {
-  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+  return Boolean(
+    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
+  );
 }
 
 export function getSmtpTransporter() {
@@ -14,11 +16,14 @@ export function getSmtpTransporter() {
     return smtpTransporter;
   }
 
-  const host = process.env.SMTP_HOST ?? "mail";
+  const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT ?? "587");
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
+  if (!host) {
+    throw new Error("SMTP_HOST must be set to send email codes");
+  }
   if (!user || !pass) {
     throw new Error("SMTP_USER and SMTP_PASS must be set to send email codes");
   }

@@ -1,6 +1,6 @@
 # Image-mode production stack.
-# Pin: PLAT5_VERSION=v0.1.2 (same family tag as runtime). Local monorepo build:
-#   docker compose -f docker-compose.prod.yml -f docker-compose.prod.build.yml --env-file .env up --build -d
+# Pin: PLAT5_VERSION (image tag from this repo's v* releases, e.g. v0.1.2).
+# Local build: add -f docker-compose.prod.build.yml and --build.
 name: auth
 
 volumes:

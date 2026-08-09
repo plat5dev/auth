@@ -170,7 +170,9 @@ const app = issuer({
             try {
               if (!smtpConfigured()) {
                 if (isProd) {
-                  throw new Error("SMTP_USER and SMTP_PASS must be set in prod");
+                  throw new Error(
+                    "SMTP_HOST, SMTP_USER, and SMTP_PASS must be set in prod",
+                  );
                 }
                 codeDispatchCounter.add(1, { delivery_method: "log" });
                 // Dev-only path: code must appear in logs when SMTP is unset.

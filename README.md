@@ -4,7 +4,7 @@ Optional **reference OIDC IdP** (OpenAuth + password codes + JWKS) for the Plat5
 
 Self-contained: own compose network, own Postgres, own docs. Publish port `5000`; relying parties point at the host/public URL like any external IdP.
 
-Image: `ghcr.io/plat5dev/auth` (multi-arch). Pin with `PLAT5_VERSION` (same family tag as runtime in 0.1.x) or any release tag from this repo.
+Image: `ghcr.io/plat5dev/auth` (multi-arch). Tags are cut from **this** repo: push a `v*` git tag → release workflow builds multi-arch and pushes. Pin with `PLAT5_VERSION` (e.g. `v0.1.2`). In 0.1.x the CLI often uses the same pin string as runtime; tags can diverge later.
 
 ## Layout
 
