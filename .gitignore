@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# output
+out/
+dist/
+*.tgz
+
+# coverage
+coverage/
+*.lcov
+
+# logs
+logs/
+*.log
+
+# env
+.env
+.env.*
+!.env.template
+
+# caches / IDE / OS
+.eslintcache
+.cache
+*.tsbuildinfo
+.idea/
+.vscode/
+.DS_Store
+*~
+
+# issuer local
+issuer/persist.json
