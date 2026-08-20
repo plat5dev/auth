@@ -19,7 +19,7 @@ bun test
 
 Entry point: `src/issuer.ts`
 
-Login UI theme (logo, colors) is set in `issuer.ts` via OpenAuth `theme`. Static brand assets live in `public/` and are served at `/static/*`.
+Login UI theme (logo, colors) is set in `issuer.ts` via OpenAuth `theme`. `AUTH_DISPLAY_NAME` is the UI title and the name in password-challenge email. `AUTH_LOGO_URL` / `AUTH_FAVICON_URL` override the bundled `/static/*` assets (`public/`). Bind-mount `public/` to replace files at the default paths.
 
 Prefer compose from the Auth product root:
 
@@ -47,6 +47,9 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URIs |
 | `AUTH_ALLOWED_AUDIENCES` | Optional audience allowlist (empty = any) |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins |
+| `AUTH_DISPLAY_NAME` | Login UI title + email copy (default `Plat5`) |
+| `AUTH_LOGO_URL` | Login UI logo URL (default `/static/logo.jpg`) |
+| `AUTH_FAVICON_URL` | Login UI favicon URL (default `/static/p5.jpg`) |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Password challenge email (all three required to send; omit in dev → codes logged) |
 | `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | Resource `deployment.environment`; `prod` disables `POST /dev/token` |
 | `OTEL_SERVICE_NAME` | Resource `service.name` (default `issuer`) |

@@ -26,12 +26,21 @@ const STATIC_FILES: Record<string, { file: string; type: string }> = {
   "/static/p5.jpg": { file: "p5.jpg", type: "image/jpeg" },
 };
 
+function envString(name: string, fallback: string): string {
+  const raw = process.env[name]?.trim();
+  return raw ? raw : fallback;
+}
+
+const displayName = envString("AUTH_DISPLAY_NAME", "Plat5");
+const logoUrl = envString("AUTH_LOGO_URL", "/static/logo.jpg");
+const faviconUrl = envString("AUTH_FAVICON_URL", "/static/p5.jpg");
+
 const theme: Theme = {
-  title: "Plat5",
-  favicon: "/static/p5.jpg",
+  title: displayName,
+  favicon: faviconUrl,
   logo: {
-    light: "/static/logo.jpg",
-    dark: "/static/logo.jpg",
+    light: logoUrl,
+    dark: logoUrl,
   },
   background: {
     light: "#ffffff",
@@ -189,8 +198,8 @@ const app = issuer({
               await transporter.sendMail({
                 from,
                 to: email,
-                subject: "Your Plat5 verification code",
-                text: `Your Plat5 verification code is ${code}.`,
+                subject: `Your ${displayName} verification code`,
+                text: `Your ${displayName} verification code is ${code}.`,
               });
               codeDispatchCounter.add(1, { delivery_method: "email" });
               passwordLogger.info("Password challenge dispatched", {

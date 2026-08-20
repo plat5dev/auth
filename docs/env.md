@@ -10,6 +10,9 @@
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (comma-separated) | `plat5` |
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | See code defaults |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins | See code defaults |
+| `AUTH_DISPLAY_NAME` | Login UI title and password-challenge email copy | `Plat5` |
+| `AUTH_LOGO_URL` | Login UI logo (light and dark) | `/static/logo.jpg` |
+| `AUTH_FAVICON_URL` | Login UI favicon | `/static/p5.jpg` |
 | `SMTP_HOST` | Password-challenge SMTP host | Required when sending email (no default). BYO provider or host-published MTA |
 | `SMTP_PORT` | SMTP port | `587` |
 | `SMTP_USER` / `SMTP_PASS` | SMTP auth | With `SMTP_HOST`, enables email; if any missing and not prod → codes logged; prod fails closed without full SMTP |
