@@ -60,6 +60,8 @@ services:
       OTEL_SERVICE_NAMESPACE: auth
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       DEPLOYMENT_ENV: prod
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - auth
     depends_on:

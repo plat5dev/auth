@@ -35,4 +35,6 @@ docker compose -f docker-compose.prod.yml -f docker-compose.prod.build.yml --env
 
 Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`. Optional: `PUBLIC_ISSUER_URL`, other `SMTP_*`, client allowlists.
 
-**Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA).
+**Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA). Host SMTP: `SMTP_HOST=host.docker.internal` and `extra_hosts: ["host.docker.internal:host-gateway"]` on the issuer.
+
+Wire to Plat5 + TLS + SPA allowlists: [plat5 self-hosting](https://github.com/plat5dev/plat5/blob/master/docs/self-hosting.md).
