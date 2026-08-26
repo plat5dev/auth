@@ -169,7 +169,7 @@ export async function finishInviteAfterSuccess(
   issued: Response,
   req: Request,
   userId: string,
-  log?: { warn: (msg: string, extra?: Record<string, unknown>) => void },
+  log?: { warn: (msg: string, extra?: Record<string, string | number | boolean>) => void },
   fetchImpl?: IdentityRedeemFetch,
 ): Promise<Response> {
   const token = readInviteToken(req);

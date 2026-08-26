@@ -77,7 +77,7 @@ describe("invite cookie survives authorize → password", () => {
     expect(setCookie!).toContain("HttpOnly");
     expect(setCookie!).toContain("Secure");
 
-    const cookieValue = setCookie!.split(";")[0];
+    const cookieValue = setCookie!.split(";")[0] ?? "";
     const login = new Request("https://auth.example.com/password/authorize", {
       method: "POST",
       headers: { cookie: cookieValue },
