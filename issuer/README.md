@@ -42,6 +42,7 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 |-----|---------|
 | `DATABASE_URL` | Auth Postgres |
 | `PORT` | Public OIDC (default `5000`) |
+| `PUBLIC_ISSUER_URL` | Pin JWT `iss` + OIDC discovery (injected as `X-Forwarded-*` for OpenAuth) |
 | `INTERNAL_PORT` | Health + `/metrics` (default `5001`) |
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (default `plat5`) |
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URIs |
