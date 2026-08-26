@@ -19,10 +19,6 @@ import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
 import { handleDevToken } from "./dev/token.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
-import {
-  finishInviteAfterSuccess,
-  inviteSetCookieFromRequest,
-} from "./invite.ts";
 
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
 
@@ -294,7 +290,7 @@ const app = issuer({
       }
     });
   },
-  success: async (ctx, value, req) => {
+  success: async (ctx, value) => {
     return tracer.startActiveSpan("issuer.success", async (span) => {
       span.setAttributes({
         "auth.provider": value.provider,
@@ -310,12 +306,7 @@ const app = issuer({
             user_id: subject.user_id,
           });
           span.setStatus({ code: SpanStatusCode.OK });
-          const issued = await ctx.subject("user", subject);
-          return finishInviteAfterSuccess(issued, req, userId, {
-            warn(msg, extra) {
-              issuerLogger.warn(msg, extra);
-            },
-          });
+          return ctx.subject("user", subject);
         }
 
         throw new Error("Invalid provider");
@@ -453,10 +444,6 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
         newHeaders.set(key, value);
       }
       newHeaders.set("X-Request-ID", requestId);
-      const inviteCookie = inviteSetCookieFromRequest(request);
-      if (inviteCookie) {
-        newHeaders.append("Set-Cookie", inviteCookie);
-      }
       const finalResponse = new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
