@@ -18,6 +18,7 @@ import { startHealthServer } from "./health.ts";
 import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
 import { handleDevToken } from "./dev/token.ts";
+import { applyPublicIssuerUrl } from "./public-issuer.ts";
 
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
 
@@ -430,7 +431,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
     });
 
     try {
-      const response = await app.fetch(request, server);
+      const response = await app.fetch(applyPublicIssuerUrl(request), server);
 
       span.setAttributes({
         "http.status_code": response.status,
