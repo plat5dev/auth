@@ -6,9 +6,9 @@
 |----------|---------|-----------------|
 | `DATABASE_URL` | Postgres for users + OpenAuth storage | Required |
 | `INTERNAL_PORT` | Internal health + `/metrics` (not public OIDC) | `5001` |
-| `PUBLIC_ISSUER_URL` | Public `iss` for minted tokens when not request origin | Optional |
+| `PUBLIC_ISSUER_URL` | Pins JWT `iss` and OIDC discovery to this origin (OpenAuth 0.4.3 has no `issuer:` option; the issuer injects `X-Forwarded-*` so `getRelativeUrl` uses it). Also used by `POST /dev/token`. Set this when the request origin is the container hostname, otherwise `iss` is the container origin and relying-party `AUTH_ISSUER` checks 401. | Optional; trailing slash stripped |
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (comma-separated) | `plat5` |
-| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | See code defaults |
+| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | Code default: Postman + localhost. Prod compose interpolates unset to empty string → empty allowlist → deny all `/authorize`. Required in production. |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins | See code defaults |
 | `AUTH_DISPLAY_NAME` | Login UI title and password-challenge email copy | `Plat5` |
 | `AUTH_LOGO_URL` | Login UI logo (light and dark) | `/static/logo.jpg` |

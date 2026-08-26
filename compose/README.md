@@ -23,7 +23,7 @@ Postgres DB `auth`. Relying parties reach JWKS via the published host URL. Do no
 Pull the published image (`ghcr.io/plat5dev/auth:${AUTH_VERSION}`; tags from this repo’s `v*` releases):
 
 ```bash
-cp .env.template .env   # set secrets + AUTH_VERSION=v0.1.2
+cp .env.template .env   # set secrets + AUTH_VERSION=v0.1.5
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
@@ -33,7 +33,7 @@ Build the issuer image from this checkout instead of pulling:
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.build.yml --env-file .env up --build -d
 ```
 
-Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`. Optional: `PUBLIC_ISSUER_URL`, other `SMTP_*`, client allowlists.
+Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `AUTH_ALLOWED_REDIRECT_URIS` (prod compose defaults to empty → deny all OAuth authorize). Optional: `PUBLIC_ISSUER_URL` (pins JWT `iss` / discovery behind a proxy), other `SMTP_*`, client allowlists.
 
 **Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA). Host SMTP: `SMTP_HOST=host.docker.internal` and `extra_hosts: ["host.docker.internal:host-gateway"]` on the issuer.
 
