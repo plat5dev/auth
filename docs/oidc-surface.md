@@ -20,6 +20,7 @@ Published host port: **5000**. Internal health (not published): `INTERNAL_PORT` 
 | JWT subject properties | `{ "user_id": "<ulid>" }` |
 | Claim path for user id | `properties.user_id` |
 | Signing | JWKS (`kid` in header); keys in OpenAuth storage |
+| `iss` | Request origin via OpenAuth `getRelativeUrl` (`X-Forwarded-*`). Set `PUBLIC_ISSUER_URL` to pin `iss` (and discovery) to the public origin relying parties use as `AUTH_ISSUER`. OpenAuth 0.4.3 has no `issuer:` config. |
 
 Relying parties that map a dotted claim path to an opaque user id should use `properties.user_id` for tokens from Plat5 Auth.
 
@@ -28,7 +29,7 @@ Relying parties that map a dotted claim path to an opaque user id should use `pr
 | Env | Purpose |
 |-----|---------|
 | `AUTH_ALLOWED_CLIENTS` | Comma-separated OAuth client IDs (default `plat5`) |
-| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist |
+| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist (required in prod compose; unset becomes deny-all) |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins |
 
 Operators set client IDs to match whatever audience / client their API gateway expects (e.g. Plat5 often uses audience `plat5`).

@@ -1,5 +1,5 @@
 # Production stack — pulls ghcr.io/plat5dev/auth:${AUTH_VERSION}.
-# Pin: AUTH_VERSION (tag from this repo's v* releases, e.g. v0.1.2).
+# Pin: AUTH_VERSION (tag from this repo's v* releases, e.g. v0.1.5).
 # Build locally: add -f docker-compose.prod.build.yml and --build.
 name: auth
 
@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
 
   issuer:
-    image: ghcr.io/plat5dev/auth:${AUTH_VERSION:-v0.1.2}
+    image: ghcr.io/plat5dev/auth:${AUTH_VERSION:-v0.1.5}
     labels:
       service.name: issuer
       service.namespace: auth
@@ -51,6 +51,7 @@ services:
       SMTP_TLS_INSECURE: ${SMTP_TLS_INSECURE:-false}
       PUBLIC_ISSUER_URL: ${PUBLIC_ISSUER_URL}
       AUTH_ALLOWED_CLIENTS: ${AUTH_ALLOWED_CLIENTS:-plat5}
+      # Required. Unset interpolates to "" → empty allowlist → deny all /authorize.
       AUTH_ALLOWED_REDIRECT_URIS: ${AUTH_ALLOWED_REDIRECT_URIS:-}
       AUTH_ALLOWED_ORIGINS: ${AUTH_ALLOWED_ORIGINS:-}
       AUTH_DISPLAY_NAME: ${AUTH_DISPLAY_NAME:-Plat5}
