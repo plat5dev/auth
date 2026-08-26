@@ -57,6 +57,13 @@ describe("readInviteToken", () => {
     );
     expect(readInviteToken(req)).toBe(TOKEN);
   });
+
+  test("does not accept invite_token query", () => {
+    const req = new Request(
+      `http://auth.example.com/authorize?invite_token=${TOKEN}`,
+    );
+    expect(readInviteToken(req)).toBe(null);
+  });
 });
 
 describe("invite cookie survives authorize → password", () => {
@@ -80,7 +87,7 @@ describe("invite cookie survives authorize → password", () => {
 });
 
 describe("locationAfterInvite", () => {
-  test("appends invite_token to OAuth redirect", () => {
+  test("appends invite= to OAuth redirect", () => {
     const loc = "https://console.example.com/callback?code=abc&state=xyz";
     const next = appendInviteToken(loc, TOKEN);
     expect(next).toContain("code=abc");
