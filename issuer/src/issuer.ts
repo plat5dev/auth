@@ -313,7 +313,7 @@ const app = issuer({
           const issued = await ctx.subject("user", subject);
           return finishInviteAfterSuccess(issued, req, userId, {
             warn(msg, extra) {
-              issuerLogger.warn(msg, extra ?? {});
+              issuerLogger.warn(msg, extra);
             },
           });
         }
