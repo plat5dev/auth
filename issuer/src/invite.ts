@@ -1,9 +1,9 @@
 /**
  * Org invite token plumbing for the IdP.
  *
- * Invite links are Auth /authorize URLs with `invite_token` (query). The token is
+ * Invite links are Auth /authorize URLs with `invite` (query). The token is
  * stored in an HttpOnly cookie so it survives the password login/register flow.
- * After success, Auth appends `invite_token` to the OAuth redirect (and, when
+ * After success, Auth appends `invite` to the OAuth redirect (and, when
  * INVITE_REDEEM_URL matches that redirect target, prefers it). Optionally POSTs
  * to IDENTITY_INVITE_REDEEM_URL (public/gateway URL — Auth must not join plat5's
  * Docker network).
@@ -11,7 +11,7 @@
  * Auth does not send invite email. Password-challenge SMTP is unrelated.
  */
 
-export const INVITE_TOKEN_QUERY = "invite_token";
+export const INVITE_TOKEN_QUERY = "invite";
 export const INVITE_COOKIE = "plat5_invite_token";
 export const INVITE_COOKIE_MAX_AGE = 60 * 60;
 export const INVITE_TOKEN_PREFIX = "inv_";
@@ -91,7 +91,7 @@ export function sameRedirectTarget(location: string, redeemUrl: string): boolean
 
 /**
  * When INVITE_REDEEM_URL is set and matches the OAuth redirect target
- * (origin + path), use it and copy code/state. Otherwise append invite_token
+ * (origin + path), use it and copy code/state. Otherwise append `invite`
  * to the original Location so token-exchange redirect_uri still matches.
  */
 export function locationAfterInvite(
