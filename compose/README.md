@@ -23,7 +23,7 @@ Postgres DB `auth`. Relying parties reach JWKS via the published host URL. Do no
 Pull the published image (`ghcr.io/plat5dev/auth:${AUTH_VERSION}`; tags from this repo’s `v*` releases):
 
 ```bash
-cp .env.template .env   # set secrets + AUTH_VERSION=v0.1.5
+cp .env.template .env   # set secrets + AUTH_VERSION=v0.1.6
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
