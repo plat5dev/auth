@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { issuer } from "@openauthjs/openauth";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
 import { PasswordUI } from "@openauthjs/openauth/ui/password";
-import type { Theme } from "@openauthjs/openauth/ui/theme";
 import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
 
 import { logger } from "./logger.ts";
@@ -19,6 +18,7 @@ import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
 import { handleDevToken } from "./dev/token.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
+import { loadTheme, verificationEmail } from "./theme.ts";
 
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
 
@@ -33,30 +33,10 @@ function envString(name: string, fallback: string): string {
 }
 
 const displayName = envString("AUTH_DISPLAY_NAME", "Plat5");
-const logoUrl = envString("AUTH_LOGO_URL", "/static/logo.jpg");
-const faviconUrl = envString("AUTH_FAVICON_URL", "/static/p5.jpg");
-
-const theme: Theme = {
-  title: displayName,
-  favicon: faviconUrl,
-  logo: {
-    light: logoUrl,
-    dark: logoUrl,
-  },
-  background: {
-    light: "#ffffff",
-    dark: "#ffffff",
-  },
-  primary: {
-    light: "#000000",
-    dark: "#000000",
-  },
-  radius: "md",
-  css: `
-    :root { color-scheme: light; }
-    body { color: #000; background: #fff; }
-  `,
-};
+const theme = loadTheme({
+  displayName,
+  themeFile: process.env.AUTH_THEME_FILE,
+});
 
 await startTelemetry();
 
@@ -196,11 +176,12 @@ const app = issuer({
 
               const transporter = getSmtpTransporter();
               const from = getSmtpFrom();
+              const mail = verificationEmail(displayName, code);
               await transporter.sendMail({
                 from,
                 to: email,
-                subject: `Your ${displayName} verification code`,
-                text: `Your ${displayName} verification code is ${code}.`,
+                subject: mail.subject,
+                text: mail.text,
               });
               codeDispatchCounter.add(1, { delivery_method: "email" });
               passwordLogger.info("Password challenge dispatched", {

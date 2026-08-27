@@ -19,7 +19,7 @@ bun test
 
 Entry point: `src/issuer.ts`
 
-Login UI theme (logo, colors) is set in `issuer.ts` via OpenAuth `theme`. `AUTH_DISPLAY_NAME` is the UI title and the name in password-challenge email. `AUTH_LOGO_URL` / `AUTH_FAVICON_URL` override the bundled `/static/*` assets (`public/`). Bind-mount `public/` to replace files at the default paths.
+Login UI theme is an OpenAuth `Theme`. Omit `AUTH_THEME_FILE` for the bundled light theme and `/static/*` assets (`public/`). Set `AUTH_THEME_FILE` to a JSON file and bind-mount it; missing/invalid JSON fails startup. `AUTH_DISPLAY_NAME` is the password-challenge email name, and fills `theme.title` when the file omits `title`.
 
 Prefer compose from the Auth product root:
 
@@ -48,9 +48,8 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URIs |
 | `AUTH_ALLOWED_AUDIENCES` | Optional audience allowlist (empty = any) |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins |
-| `AUTH_DISPLAY_NAME` | Login UI title + email copy (default `Plat5`) |
-| `AUTH_LOGO_URL` | Login UI logo URL (default `/static/logo.jpg`) |
-| `AUTH_FAVICON_URL` | Login UI favicon URL (default `/static/p5.jpg`) |
+| `AUTH_DISPLAY_NAME` | Email copy; login UI title if theme file omits `title` (default `Plat5`) |
+| `AUTH_THEME_FILE` | Optional OpenAuth Theme JSON path. Omit = bundled light theme |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Password challenge email (all three required to send; omit in dev → codes logged) |
 | `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | Resource `deployment.environment`; `prod` disables `POST /dev/token` |
 | `OTEL_SERVICE_NAME` | Resource `service.name` (default `issuer`) |

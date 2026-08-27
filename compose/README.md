@@ -33,7 +33,7 @@ Build the issuer image from this checkout instead of pulling:
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.build.yml --env-file .env up --build -d
 ```
 
-Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `AUTH_ALLOWED_REDIRECT_URIS` (prod compose defaults to empty → deny all OAuth authorize). Optional: `PUBLIC_ISSUER_URL` (pins JWT `iss` / discovery behind a proxy), other `SMTP_*`, client allowlists.
+Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `AUTH_ALLOWED_REDIRECT_URIS` (prod compose defaults to empty → deny all OAuth authorize). Optional: `PUBLIC_ISSUER_URL` (pins JWT `iss` / discovery behind a proxy), other `SMTP_*`, client allowlists, `AUTH_THEME_FILE` (OpenAuth Theme JSON; bind-mount the file, e.g. `./theme.json:/config/theme.json:ro` and `AUTH_THEME_FILE=/config/theme.json`).
 
 **Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA). Host SMTP: `SMTP_HOST=host.docker.internal` and `extra_hosts: ["host.docker.internal:host-gateway"]` on the issuer.
 
