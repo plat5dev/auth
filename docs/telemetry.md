@@ -155,11 +155,24 @@ Do not include `error_kind` for 4xx.
 - Propagate **W3C Trace Context** only (no Baggage).
 - Resource attributes: `service.name`, `service.namespace`, `service.instance.id`, `service.version`, `deployment.environment`.
 
-### Span attributes
+### HTTP server spans
 
-Follow [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/). Also:
+[HTTP span conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/) for the names we emit. Do **not** emit deprecated names (`http.method`, `http.status_code`, `http.target`, `http.url`, `http.scheme`). Do **not** dual-write old and new.
 
-- `request_id` on HTTP request spans (if present)
+| | |
+|---|---|
+| Kind | `SERVER` |
+| Name | `{method} {http.route}` when a route template exists; otherwise `{method}` only. Never the raw URI. |
+| Attributes | `http.request.method`, `url.path`, `http.route` (template only, when matched), `http.response.status_code` (when known) |
+| Status | Unset on 4xx. `Error` on 5xx with **no** description. Unset on 1xx/2xx/3xx unless a non-HTTP error occurred. |
+
+`http.route` is the matched template. Do not put the raw path there. `url.path` is the actual path.
+
+Do not set `url.query`, `url.scheme`, or `error.type`.
+
+### Plat5 span attributes (not HTTP semconv)
+
+- `request_id` on HTTP request spans (if present). Do not rename it to `request.id`.
 - `error.kind` on **error spans** (5xx only): `auth`, `network`, `db`, `io`, `internal`, `validation`
 - 4xx responses are normal business outcomes — do not set `error.kind` and do not mark the span as failed
 - Record exceptions via `span.recordException(err)`
@@ -235,5 +248,6 @@ Extra process/runtime series are optional.
 
 - [OTel SDK environment variables](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/)
 - [OTLP exporter configuration](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/)
+- [HTTP span semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/)
 - [Semantic conventions](https://opentelemetry.io/docs/specs/semconv/)
 - [grafana/otel-lgtm](https://github.com/grafana/docker-otel-lgtm)

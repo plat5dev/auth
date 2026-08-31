@@ -14,7 +14,7 @@ const httpRequestDuration = meter.createHistogram("http_request_duration_seconds
   },
 });
 
-function normalizeRoute(pathname: string): string {
+export function normalizeRoute(pathname: string): string {
   if (pathname.startsWith("/.well-known/")) {
     return pathname;
   }

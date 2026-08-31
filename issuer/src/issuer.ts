@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { issuer } from "@openauthjs/openauth";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
 import { PasswordUI } from "@openauthjs/openauth/ui/password";
-import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
+import { metrics, trace, SpanKind, SpanStatusCode, type Span } from "@opentelemetry/api";
 
 import { logger } from "./logger.ts";
 import { ErrorKind } from "./errors.ts";
@@ -41,7 +41,7 @@ const theme = loadTheme({
 await startTelemetry();
 
 // Import after telemetry starts so meters are registered with the SDK
-const { withHttpMetrics } = await import("./http-metrics.ts");
+const { withHttpMetrics, normalizeRoute } = await import("./http-metrics.ts");
 await import("./process-metrics.ts");
 
 const sql = connect();
@@ -323,6 +323,29 @@ async function serveStatic(pathname: string): Promise<Response | null> {
   });
 }
 
+function applyHttpSpan(
+  span: Span,
+  method: string,
+  path: string,
+  route: string,
+  requestId: string,
+) {
+  span.setAttributes({
+    "http.request.method": method,
+    "url.path": path,
+    "http.route": route,
+    request_id: requestId,
+  });
+}
+
+function finishHttpSpan(span: Span, status: number) {
+  span.setAttribute("http.response.status_code", status);
+  if (status >= 500) {
+    span.setAttribute("error.kind", ErrorKind.Internal);
+    span.setStatus({ code: SpanStatusCode.ERROR, message: "" });
+  }
+}
+
 async function handleRequest(request: Request, server?: unknown): Promise<Response> {
   const requestId = request.headers.get("X-Request-ID") || randomUUID();
   const start = performance.now();
@@ -347,22 +370,20 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
     }
   }
 
+  const route = normalizeRoute(url.pathname);
+  const spanName = `${request.method} ${route}`;
+
   // Dev-only mint: never registered when DEPLOYMENT_ENV=prod
   if (!isProd && url.pathname === "/dev/token") {
-    return tracer.startActiveSpan("issuer.http_request", async (span) => {
-      span.setAttributes({
-        "http.method": request.method,
-        "http.route": url.pathname,
-        request_id: requestId,
-      });
+    return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
+      applyHttpSpan(span, request.method, url.pathname, route, requestId);
       try {
         const response = await handleDevToken(request, requestId, {
           storage,
           users: usersStore,
           allowedClients,
         });
-        span.setAttributes({ "http.status_code": response.status });
-        span.setStatus({ code: SpanStatusCode.OK });
+        finishHttpSpan(span, response.status);
         issuerLogger.info("request completed", {
           request_id: requestId,
           route: url.pathname,
@@ -373,9 +394,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
         return response;
       } catch (error) {
         span.recordException(error as Error);
-        span.setAttribute("error", true);
-        span.setAttribute("error.kind", ErrorKind.Internal);
-        span.setStatus({ code: SpanStatusCode.ERROR });
+        finishHttpSpan(span, 500);
         issuerLogger.error("Dev token mint failed", error, {
           error: true,
           error_kind: ErrorKind.Internal,
@@ -404,20 +423,13 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
     });
   }
 
-  return tracer.startActiveSpan("issuer.http_request", async (span) => {
-    span.setAttributes({
-      "http.method": request.method,
-      "http.route": url.pathname,
-      request_id: requestId,
-    });
+  return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
+    applyHttpSpan(span, request.method, url.pathname, route, requestId);
 
     try {
       const response = await app.fetch(applyPublicIssuerUrl(request), server);
 
-      span.setAttributes({
-        "http.status_code": response.status,
-      });
-      span.setStatus({ code: SpanStatusCode.OK });
+      finishHttpSpan(span, response.status);
 
       const corsHeaders = getCorsHeaders(request);
       const newHeaders = new Headers(response.headers);
@@ -442,9 +454,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
       return finalResponse;
     } catch (error) {
       span.recordException(error as Error);
-      span.setAttribute("error", true);
-      span.setAttribute("error.kind", ErrorKind.Internal);
-      span.setStatus({ code: SpanStatusCode.ERROR });
+      finishHttpSpan(span, 500);
 
       issuerLogger.error("HTTP request handler failed", error, {
         error: true,
