@@ -38,6 +38,7 @@ Operators set client IDs to match whatever audience / client their API gateway e
 
 - Password codes via email when `SMTP_*` is set (BYO SMTP); otherwise codes logged in dev
 - OAuth2/OIDC authorization code (OpenAuth)
+- Default first UI after `/authorize` is password **login**. Add `prompt=create` to land on **register** instead (e.g. a "Create account" button). Allow-check and the authorization cookie are unchanged. Only `create` is honored; other `prompt` values are ignored. This is not full OIDC `prompt` (`none` / `login` / `consent` are not implemented). Do not send users to `/password/register` directly — that skips the client/redirect allowlist.
 
 ## Dev-only token mint
 

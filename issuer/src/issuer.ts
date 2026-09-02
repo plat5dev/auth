@@ -18,6 +18,7 @@ import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
 import { handleDevToken } from "./dev/token.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
+import { authorizeStartLocation } from "./authorize-start.ts";
 import { loadTheme, verificationEmail } from "./theme.ts";
 
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
@@ -437,6 +438,13 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
         newHeaders.set(key, value);
       }
       newHeaders.set("X-Request-ID", requestId);
+      const startLocation = authorizeStartLocation(
+        request,
+        newHeaders.get("Location"),
+      );
+      if (startLocation !== null) {
+        newHeaders.set("Location", startLocation);
+      }
       const finalResponse = new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
