@@ -190,7 +190,9 @@ When a metrics destination is set and `OTEL_METRICS_EXPORTER` is unset or includ
 
 ### Cardinality
 
-**Never** put high-cardinality values in metric labels (user IDs, request IDs, emails, `client_id`, `redirect_uri`). Those belong on spans and logs.
+**Never** put high-cardinality values in metric labels (user IDs, request IDs, emails, `client_id`, `redirect_uri`, raw request paths). Those belong on spans and logs.
+
+`route` is an allowlist of templates the issuer serves. Any other path is `unmatched` — one series for probes and 404s, not one per URL.
 
 ### Naming
 

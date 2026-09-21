@@ -14,22 +14,34 @@ const httpRequestDuration = meter.createHistogram("http_request_duration_seconds
   },
 });
 
+/** Exact paths the issuer actually serves. Anything else is scanner noise. */
+const EXACT_ROUTES = new Set([
+  "/authorize",
+  "/token",
+  "/callback",
+  "/userinfo",
+  "/revoke",
+  "/dev/token",
+  "/static/logo.jpg",
+  "/static/p5.jpg",
+  "/.well-known/jwks.json",
+  "/.well-known/oauth-authorization-server",
+]);
+
+const PROVIDER_ROUTE = /^\/([a-z]+)\/(authorize|callback|verify|register|change)$/;
+
+/** Low-cardinality route label. Unknown paths are one series, not one per probe. */
 export function normalizeRoute(pathname: string): string {
-  if (pathname.startsWith("/.well-known/")) {
+  if (EXACT_ROUTES.has(pathname)) {
     return pathname;
   }
 
-  const providerMatch = pathname.match(/^\/([a-z]+)\/(authorize|callback|verify)$/);
+  const providerMatch = pathname.match(PROVIDER_ROUTE);
   if (providerMatch) {
     return `/{provider}/${providerMatch[2]}`;
   }
 
-  const coreRoutes = ["/authorize", "/token", "/callback", "/userinfo", "/revoke"];
-  if (coreRoutes.includes(pathname)) {
-    return pathname;
-  }
-
-  return pathname.length > 50 ? pathname.slice(0, 50) : pathname;
+  return "unmatched";
 }
 
 export type FetchHandler = (request: Request, server?: unknown) => Promise<Response>;
@@ -44,8 +56,7 @@ export function withHttpMetrics(handler: FetchHandler): FetchHandler {
       const url = new URL(request.url);
       route = normalizeRoute(url.pathname);
     } catch {
-      const rawUrl = request.url ?? "";
-      route = normalizeRoute(rawUrl.startsWith("/") ? (rawUrl.split("?")[0] as string) : "unknown");
+      route = "unmatched";
     }
 
     try {
