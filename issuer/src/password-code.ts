@@ -1,6 +1,6 @@
 import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
 
-import { ErrorKind } from "./errors.ts";
+import { ConfigError, ErrorKind } from "./errors.ts";
 import { devModeEnabled } from "./dev/mode.ts";
 import type { StructuredLogger } from "./logger.ts";
 
@@ -46,7 +46,7 @@ export function createSendCode(
 
       try {
         if (deliveryMethod === "none") {
-          throw new Error(SMTP_REQUIRED_MESSAGE);
+          throw new ConfigError(SMTP_REQUIRED_MESSAGE);
         }
 
         if (deliveryMethod === "log") {
@@ -67,13 +67,14 @@ export function createSendCode(
         });
         span.setStatus({ code: SpanStatusCode.OK });
       } catch (error) {
+        const kind = error instanceof ConfigError ? ErrorKind.Config : ErrorKind.Network;
         span.recordException(error as Error);
         span.setAttribute("error", true);
-        span.setAttribute("error.kind", ErrorKind.Network);
+        span.setAttribute("error.kind", kind);
         span.setStatus({ code: SpanStatusCode.ERROR });
         deps.logger.error("Password challenge dispatch failed", error, {
           error: true,
-          error_kind: ErrorKind.Network,
+          error_kind: kind,
           delivery_method: deliveryMethod,
         });
         throw error;

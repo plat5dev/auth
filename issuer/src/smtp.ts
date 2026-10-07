@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { ConfigError } from "./errors.ts";
 import { logger } from "./logger.ts";
 
 const smtpLogger = logger.withScope("issuer.provider.password.email");
@@ -22,14 +23,14 @@ export function getSmtpTransporter() {
   const pass = process.env.SMTP_PASS;
 
   if (!host) {
-    throw new Error("SMTP_HOST must be set to send email codes");
+    throw new ConfigError("SMTP_HOST must be set to send email codes");
   }
   if (!user || !pass) {
-    throw new Error("SMTP_USER and SMTP_PASS must be set to send email codes");
+    throw new ConfigError("SMTP_USER and SMTP_PASS must be set to send email codes");
   }
 
   if (!Number.isFinite(port)) {
-    throw new Error("SMTP_PORT must be a valid number");
+    throw new ConfigError("SMTP_PORT must be a valid number");
   }
 
   const tlsInsecure = process.env.SMTP_TLS_INSECURE === "true";
