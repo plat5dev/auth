@@ -2,6 +2,7 @@ import { OauthError, UnknownStateError } from "@openauthjs/openauth/error";
 
 import {
   ConfigError,
+  EmailDeliveryError,
   ErrorKind,
   UNEXPECTED_CLIENT_MESSAGE,
   markErrorLogged,
@@ -52,12 +53,15 @@ export function installRawTraceSuppression(): void {
 }
 
 function clientMessage(error: Error): string {
-  if (error instanceof ConfigError) return error.clientMessage;
+  if (error instanceof ConfigError || error instanceof EmailDeliveryError) {
+    return error.clientMessage;
+  }
   return UNEXPECTED_CLIENT_MESSAGE;
 }
 
 function kindOf(error: Error): ErrorKindType {
   if (error instanceof ConfigError) return ErrorKind.Config;
+  if (error instanceof EmailDeliveryError) return ErrorKind.Network;
   return ErrorKind.Internal;
 }
 

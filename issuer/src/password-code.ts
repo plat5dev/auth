@@ -1,6 +1,6 @@
 import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
 
-import { ConfigError, ErrorKind } from "./errors.ts";
+import { ConfigError, EmailDeliveryError, ErrorKind } from "./errors.ts";
 import { devModeEnabled } from "./dev/mode.ts";
 import type { StructuredLogger } from "./logger.ts";
 
@@ -60,7 +60,12 @@ export function createSendCode(
           return;
         }
 
-        await deps.sendEmail(email, code);
+        try {
+          await deps.sendEmail(email, code);
+        } catch (cause) {
+          const reason = cause instanceof Error ? cause.message : String(cause);
+          throw new EmailDeliveryError(`Login code email failed: ${reason}`, { cause });
+        }
         codeDispatchCounter.add(1, { delivery_method: "email" });
         deps.logger.info("Password challenge dispatched", {
           delivery_method: "email",

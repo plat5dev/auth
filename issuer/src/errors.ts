@@ -34,6 +34,20 @@ export class ConfigError extends Error {
   }
 }
 
+/**
+ * The login code could not be delivered (SMTP unreachable, timed out, rejected).
+ * `message` and `cause` are for logs only. Clients get the same message as a
+ * missing SMTP config.
+ */
+export class EmailDeliveryError extends Error {
+  readonly clientMessage = SIGNUP_UNAVAILABLE_MESSAGE;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "EmailDeliveryError";
+  }
+}
+
 const loggedErrors = new WeakSet<Error>();
 
 /** Mark an error already written to the structured log, so it is not logged again. */

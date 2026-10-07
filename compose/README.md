@@ -35,6 +35,6 @@ docker compose -f docker-compose.prod.yml -f docker-compose.prod.build.yml --env
 
 Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `AUTH_ALLOWED_REDIRECT_URIS` (prod compose defaults to empty → deny all OAuth authorize). Optional: `PUBLIC_ISSUER_URL` (pins JWT `iss` / discovery behind a proxy), other `SMTP_*`, client allowlists, `AUTH_THEME_FILE` (OpenAuth Theme JSON; bind-mount the file, e.g. `./theme.json:/config/theme.json:ro` and `AUTH_THEME_FILE=/config/theme.json`).
 
-**Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA). Host SMTP: `SMTP_HOST=host.docker.internal` (prod compose already sets `extra_hosts: ["host.docker.internal:host-gateway"]` on the issuer).
+**Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA). The issuer gives up on an unreachable server after 10 s (connect and greeting; 30 s socket idle); the user sees "Sign-up is temporarily unavailable." and the cause is in the issuer log. Host SMTP: `SMTP_HOST=host.docker.internal` (prod compose already sets `extra_hosts: ["host.docker.internal:host-gateway"]` on the issuer).
 
 Wire to Plat5 + TLS + SPA allowlists: [plat5 self-hosting](https://github.com/plat5dev/plat5/blob/master/docs/self-hosting.md).
