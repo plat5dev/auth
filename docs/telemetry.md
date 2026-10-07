@@ -32,7 +32,7 @@ Prefer standard OpenTelemetry environment variables for exporters and destinatio
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector base URL (e.g. `http://localhost:4318`). Unset = no OTLP destination. |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional full traces URL |
 | `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` | Optional full metrics URL |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | **`http/protobuf` only** (OTLP/HTTP). `grpc` is not supported. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Not read. Export is always OTLP/HTTP with JSON payloads (`http/json`). `grpc` and `http/protobuf` are not supported. |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Optional headers (e.g. Grafana Cloud auth). Honored by the OTLP exporter SDKs. |
 | `OTEL_EXPORTER_OTLP_*_HEADERS` | Per-signal header overrides when needed |
 
@@ -62,14 +62,16 @@ Endpoint = **where** to send OTLP. When set, traces and metrics both default to 
 
 | Variable | Purpose |
 |----------|---------|
-| `OTEL_SERVICE_NAME` | Resource `service.name` (compose default: `issuer`). Takes precedence over the same key in `OTEL_RESOURCE_ATTRIBUTES`. |
-| `OTEL_RESOURCE_ATTRIBUTES` | Comma-separated `key=value` resource attributes |
+| `OTEL_SERVICE_NAME` | Resource `service.name` (default: `issuer`). Takes precedence over the same key in `OTEL_RESOURCE_ATTRIBUTES`. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Comma-separated `key=value` resource attributes. Cannot set `service.name`, `service.namespace`, `service.version`, `service.instance.id`, or `deployment.environment` (see below). |
 
 Example:
 
 ```bash
 OTEL_SERVICE_NAME=issuer
-OTEL_RESOURCE_ATTRIBUTES=service.namespace=auth,service.version=1.2.3,service.instance.id=issuer-1,deployment.environment=dev
+OTEL_SERVICE_VERSION=1.2.3
+OTEL_SERVICE_INSTANCE_ID=issuer-1
+DEPLOYMENT_ENV=dev
 ```
 
 **Project convenience** (not dedicated OTel env vars; issuer also reads these and maps them onto the same resource attributes):
@@ -77,11 +79,11 @@ OTEL_RESOURCE_ATTRIBUTES=service.namespace=auth,service.version=1.2.3,service.in
 | Variable | Maps to | Compose default |
 |----------|---------|-----------------|
 | `OTEL_SERVICE_NAMESPACE` | `service.namespace` | `auth` |
-| `OTEL_SERVICE_VERSION` | `service.version` | optional |
+| `OTEL_SERVICE_VERSION` | `service.version` | `0.0.0` when unset |
 | `OTEL_SERVICE_INSTANCE_ID` | `service.instance.id` | `HOSTNAME` fallback |
-| `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | `deployment.environment` | optional |
+| `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | `deployment.environment` | `NODE_ENV`, else `development` |
 
-If both `OTEL_RESOURCE_ATTRIBUTES` and a convenience var set the same attribute, the convenience var wins. Prefer `OTEL_RESOURCE_ATTRIBUTES` for portable operator config; convenience vars are fine for compose defaults.
+The issuer always sets `service.name` and these four attributes (from the variables above or their defaults), and they win over `OTEL_RESOURCE_ATTRIBUTES`. Use the variables for them; use `OTEL_RESOURCE_ATTRIBUTES` only for other attributes.
 
 `DEPLOYMENT_ENV=prod` also disables `POST /dev/token` (not only a resource attribute).
 
@@ -207,6 +209,11 @@ When a metrics destination is set and `OTEL_METRICS_EXPORTER` is unset or includ
 | `db_operations_total` | Counter | db_system_name, db_operation_name, db_namespace |
 | `db_operation_errors_total` | Counter | db_system_name, db_operation_name, db_namespace |
 | `db_operation_duration_seconds` | Histogram | db_system_name, db_operation_name, db_namespace |
+| `auth_decisions_total` | Counter | outcome |
+| `auth_success_total` | Counter | provider |
+| `auth_failures_total` | Counter | provider |
+| `auth_password_codes_total` | Counter | delivery_method |
+| `auth_kv_purge_total` | Counter | outcome |
 
 **Histogram buckets** (same across all services):
 
