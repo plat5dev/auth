@@ -7,7 +7,7 @@ const ACCESS_TTL_SECS = 60 * 60;
 
 export type DevTokenDeps = {
   storage: StorageAdapter;
-  users: UsersStore;
+  users: Pick<UsersStore, "getOrCreateUser">;
   allowedClients: string[];
   /** Identity provider label stored on the user row (matches password flow). */
   provider?: string;
@@ -43,6 +43,34 @@ function json(
       "X-Request-ID": requestId,
     },
   });
+}
+
+/**
+ * `POST /dev/token` mints a valid token for any email, so it is opt-in:
+ * enabled only when `AUTH_DEV_TOKEN` is exactly `true`. Independent of
+ * `DEPLOYMENT_ENV`.
+ */
+export function devTokenEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.AUTH_DEV_TOKEN === "true";
+}
+
+export type DevTokenHandler = (
+  request: Request,
+  requestId: string,
+) => Promise<Response>;
+
+/**
+ * Returns the `/dev/token` handler, or `null` when the mint is disabled
+ * (route not registered; requests fall through to OpenAuth → 404).
+ */
+export function createDevTokenHandler(
+  env: Record<string, string | undefined>,
+  deps: DevTokenDeps,
+): DevTokenHandler | null {
+  if (!devTokenEnabled(env)) return null;
+  return (request, requestId) => handleDevToken(request, requestId, deps);
 }
 
 /**

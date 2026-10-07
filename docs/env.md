@@ -7,7 +7,7 @@
 | `DATABASE_URL` | Postgres for users + OpenAuth storage | Required |
 | `PORT` | Public OIDC / Auth UI port | `5000` |
 | `INTERNAL_PORT` | Internal health + `/metrics` (not public OIDC) | `5001` |
-| `PUBLIC_ISSUER_URL` | Pins JWT `iss` and OIDC discovery to this origin (OpenAuth 0.4.3 has no `issuer:` option; the issuer injects `X-Forwarded-*` so `getRelativeUrl` uses it). Also used by `POST /dev/token`. Set this when the request origin is the container hostname, otherwise `iss` is the container origin and relying-party `AUTH_ISSUER` checks 401. | Optional; trailing slash stripped |
+| `PUBLIC_ISSUER_URL` | Pins JWT `iss` and OIDC discovery to this origin (OpenAuth 0.4.3 has no `issuer:` option; the issuer injects `X-Forwarded-*` so `getRelativeUrl` uses it). Also used by `POST /dev/token` when enabled. Set this when the request origin is the container hostname, otherwise `iss` is the container origin and relying-party `AUTH_ISSUER` checks 401. | Optional; trailing slash stripped |
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (comma-separated) | `plat5` |
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | Code default: Postman + localhost. Prod compose interpolates unset to empty string → empty allowlist → deny all `/authorize`. Required in production. |
 | `AUTH_ALLOWED_AUDIENCES` | Audience allowlist checked on `/authorize` | Empty = any audience. Non-empty = `audience` required and must match |
@@ -19,7 +19,8 @@
 | `SMTP_USER` / `SMTP_PASS` | SMTP auth | With `SMTP_HOST`, enables email; if any missing and not prod → codes logged; in prod, sending a code fails without full SMTP |
 | `SMTP_FROM` | From address | `noreply@plat5.test` |
 | `SMTP_TLS_INSECURE` | Skip TLS verify (local only) | Only `true` skips |
-| `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md) | `prod` disables `/dev/token` |
+| `AUTH_DEV_TOKEN` | Enables the dev-only `POST /dev/token` mint ([`oidc-surface.md`](oidc-surface.md#dev-only-token-mint)). It mints a valid token for **any** email, so never enable it in production. Logs a warning at boot when on | Off. Only the exact string `true` enables it. Dev compose sets it; prod compose does not |
+| `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md). `DEPLOYMENT_ENV=prod` also makes password-code sending fail without full SMTP (see below) | Has no effect on `/dev/token` |
 
 ## Password challenge delivery
 

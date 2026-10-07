@@ -16,7 +16,7 @@ import { startTelemetry, shutdownTelemetry } from "./telemetry.ts";
 import { startHealthServer } from "./health.ts";
 import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
-import { handleDevToken } from "./dev/token.ts";
+import { createDevTokenHandler } from "./dev/token.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
 import { authorizeStartLocation } from "./authorize-start.ts";
 import { loadTheme, verificationEmail } from "./theme.ts";
@@ -113,6 +113,18 @@ const allowedAudiences = csvEnv("AUTH_ALLOWED_AUDIENCES", []);
 // Browser SPA origins for token refresh CORS. Empty until a client exists.
 const allowedOrigins = csvEnv("AUTH_ALLOWED_ORIGINS", []);
 const getCorsHeaders = createCorsHeaders(allowedOrigins);
+
+// Dev-only mint: registered only when AUTH_DEV_TOKEN=true (exact string).
+const devToken = createDevTokenHandler(process.env, {
+  storage,
+  users: usersStore,
+  allowedClients,
+});
+if (devToken) {
+  issuerLogger.warn(
+    "AUTH_DEV_TOKEN=true: POST /dev/token is enabled (mints tokens for any email; never enable in production)",
+  );
+}
 
 async function getUser(provider: string, identifier: string): Promise<string> {
   return tracer.startActiveSpan("issuer.get_user", async (span) => {
@@ -374,16 +386,12 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
   const route = normalizeRoute(url.pathname);
   const spanName = `${request.method} ${route}`;
 
-  // Dev-only mint: never registered when DEPLOYMENT_ENV=prod
-  if (!isProd && url.pathname === "/dev/token") {
+  // Dev-only mint: only registered when AUTH_DEV_TOKEN=true
+  if (devToken && url.pathname === "/dev/token") {
     return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
       applyHttpSpan(span, request.method, url.pathname, route, requestId);
       try {
-        const response = await handleDevToken(request, requestId, {
-          storage,
-          users: usersStore,
-          allowedClients,
-        });
+        const response = await devToken(request, requestId);
         finishHttpSpan(span, response.status);
         issuerLogger.info("request completed", {
           request_id: requestId,
