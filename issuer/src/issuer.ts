@@ -16,7 +16,9 @@ import { startTelemetry, shutdownTelemetry } from "./telemetry.ts";
 import { startHealthServer } from "./health.ts";
 import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
+import { devModeEnabled } from "./dev/mode.ts";
 import { createDevTokenHandler } from "./dev/token.ts";
+import { createSendCode } from "./password-code.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
 import { authorizeStartLocation } from "./authorize-start.ts";
 import { loadTheme, verificationEmail } from "./theme.ts";
@@ -64,13 +66,9 @@ const authSuccessCounter = meter.createCounter("auth_success_total", {
 const authFailureCounter = meter.createCounter("auth_failures_total", {
   description: "Failed authentications processed by issuer",
 });
-const codeDispatchCounter = meter.createCounter("auth_password_codes_total", {
-  description: "One-time password challenge codes generated",
-});
 const purgeExpiredCounter = meter.createCounter("auth_kv_purge_total", {
   description: "OpenAuth KV expired-row purge runs",
 });
-const isProd = process.env.DEPLOYMENT_ENV === "prod";
 
 async function runPurgeExpired() {
   try {
@@ -114,17 +112,32 @@ const allowedAudiences = csvEnv("AUTH_ALLOWED_AUDIENCES", []);
 const allowedOrigins = csvEnv("AUTH_ALLOWED_ORIGINS", []);
 const getCorsHeaders = createCorsHeaders(allowedOrigins);
 
-// Dev-only mint: registered only when AUTH_DEV_TOKEN=true (exact string).
+// AUTH_DEV_MODE=true (exact string) enables the dev-only conveniences:
+// POST /dev/token and logging login codes when SMTP is incomplete.
+if (devModeEnabled(process.env)) {
+  issuerLogger.warn(
+    "AUTH_DEV_MODE=true: POST /dev/token is enabled and login codes are logged when SMTP is incomplete (anyone can sign in as anyone; never enable in production)",
+  );
+}
 const devToken = createDevTokenHandler(process.env, {
   storage,
   users: usersStore,
   allowedClients,
 });
-if (devToken) {
-  issuerLogger.warn(
-    "AUTH_DEV_TOKEN=true: POST /dev/token is enabled (mints tokens for any email; never enable in production)",
-  );
-}
+
+const sendCode = createSendCode(process.env, {
+  smtpConfigured,
+  sendEmail: async (email, code) => {
+    const mail = verificationEmail(displayName, code);
+    await getSmtpTransporter().sendMail({
+      from: getSmtpFrom(),
+      to: email,
+      subject: mail.subject,
+      text: mail.text,
+    });
+  },
+  logger: passwordLogger,
+});
 
 async function getUser(provider: string, identifier: string): Promise<string> {
   return tracer.startActiveSpan("issuer.get_user", async (span) => {
@@ -163,58 +176,7 @@ const app = issuer({
   providers: {
     password: PasswordProvider(
       PasswordUI({
-        sendCode: async (email, code) => {
-          return tracer.startActiveSpan("issuer.password.send_code", async (span) => {
-            const deliveryMethod = smtpConfigured() ? "email" : "log";
-            span.setAttributes({
-              "auth.delivery_method": deliveryMethod,
-            });
-
-            try {
-              if (!smtpConfigured()) {
-                if (isProd) {
-                  throw new Error(
-                    "SMTP_HOST, SMTP_USER, and SMTP_PASS must be set in prod",
-                  );
-                }
-                codeDispatchCounter.add(1, { delivery_method: "log" });
-                // Dev-only path: code must appear in logs when SMTP is unset.
-                passwordLogger.info("Password challenge dispatched", {
-                  delivery_method: "log",
-                  code,
-                });
-                span.setStatus({ code: SpanStatusCode.OK });
-                return;
-              }
-
-              const transporter = getSmtpTransporter();
-              const from = getSmtpFrom();
-              const mail = verificationEmail(displayName, code);
-              await transporter.sendMail({
-                from,
-                to: email,
-                subject: mail.subject,
-                text: mail.text,
-              });
-              codeDispatchCounter.add(1, { delivery_method: "email" });
-              passwordLogger.info("Password challenge dispatched", {
-                delivery_method: "email",
-              });
-              span.setStatus({ code: SpanStatusCode.OK });
-            } catch (error) {
-              span.recordException(error as Error);
-              span.setAttribute("error", true);
-              span.setAttribute("error.kind", ErrorKind.Network);
-              span.setStatus({ code: SpanStatusCode.ERROR });
-              passwordLogger.error("Password challenge dispatch failed", error, {
-                error: true,
-                error_kind: ErrorKind.Network,
-                delivery_method: deliveryMethod,
-              });
-              throw error;
-            }
-          });
-        },
+        sendCode,
         validatePassword: (password) => {
           if (password.length < 8) {
             return "Password must be at least 8 characters";
@@ -386,7 +348,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
   const route = normalizeRoute(url.pathname);
   const spanName = `${request.method} ${route}`;
 
-  // Dev-only mint: only registered when AUTH_DEV_TOKEN=true
+  // Dev-only mint: only registered when AUTH_DEV_MODE=true
   if (devToken && url.pathname === "/dev/token") {
     return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
       applyHttpSpan(span, request.method, url.pathname, route, requestId);

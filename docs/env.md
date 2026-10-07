@@ -16,19 +16,21 @@
 | `AUTH_THEME_FILE` | Optional path to an OpenAuth Theme JSON object. Passed to `issuer({ theme })`. Omit = bundled light theme + `/static/*`. Missing file or invalid JSON fails startup. | unset |
 | `SMTP_HOST` | Password-challenge SMTP host | Required when sending email (no default). BYO provider or host-published MTA |
 | `SMTP_PORT` | SMTP port | `587` |
-| `SMTP_USER` / `SMTP_PASS` | SMTP auth | With `SMTP_HOST`, enables email; if any missing and not prod → codes logged; in prod, sending a code fails without full SMTP |
+| `SMTP_USER` / `SMTP_PASS` | SMTP auth | With `SMTP_HOST`, enables email. If any is missing, sending a code fails, unless `AUTH_DEV_MODE=true` (then the code is logged) |
 | `SMTP_FROM` | From address | `noreply@plat5.test` |
 | `SMTP_TLS_INSECURE` | Skip TLS verify (local only) | Only `true` skips |
-| `AUTH_DEV_TOKEN` | Enables the dev-only `POST /dev/token` mint ([`oidc-surface.md`](oidc-surface.md#dev-only-token-mint)). It mints a valid token for **any** email, so never enable it in production. Logs a warning at boot when on | Off. Only the exact string `true` enables it. Dev compose sets it; prod compose does not |
-| `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md). `DEPLOYMENT_ENV=prod` also makes password-code sending fail without full SMTP (see below) | Has no effect on `/dev/token` |
+| `AUTH_DEV_MODE` | Enables the dev-only conveniences: the `POST /dev/token` mint ([`oidc-surface.md`](oidc-surface.md#dev-only-token-mint)), and logging login codes when SMTP is incomplete. Both let anyone sign in as **any** email, so never enable it in production. Logs a warning at boot when on | Off. Only the exact string `true` enables it. Dev compose sets it; prod compose does not |
+| `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md). Telemetry only; `DEPLOYMENT_ENV` does not change auth behavior | — |
 
 ## Password challenge delivery
 
 | Mode | When | Behavior |
 |------|------|----------|
-| Log | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` incomplete, `DEPLOYMENT_ENV` ≠ `prod` | Code logged on issuer |
-| Email | `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` set | Sent via SMTP |
-| Error | Prod without full SMTP | Sending the code fails (no startup check) |
+| Email | `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS` set | Sent via SMTP. The code is never logged |
+| Log | SMTP incomplete and `AUTH_DEV_MODE=true` | Code logged on issuer (local dev only) |
+| Error | SMTP incomplete, `AUTH_DEV_MODE` not `true` | Sending the code fails and the code is not logged. There is no startup check, so the issuer boots and fails on the first code |
+
+This is the same in every environment; `DEPLOYMENT_ENV` has no effect.
 
 ## Compose
 
