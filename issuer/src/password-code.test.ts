@@ -33,7 +33,10 @@ describe("login code delivery", () => {
       const h = harness(false);
       await expect(createSendCode(env, h.deps)(EMAIL, CODE)).rejects.toThrow(SMTP_REQUIRED_MESSAGE);
       expect(h.sent).toHaveLength(0);
-      expect(h.lines.join("\n")).not.toContain(CODE);
+      const logged = h.lines.join("\n");
+      expect(logged).not.toContain(CODE);
+      expect(logged).toContain('"error_kind":"config"');
+      expect(logged).not.toContain('"error_kind":"network"');
     }
   });
 
@@ -42,6 +45,18 @@ describe("login code delivery", () => {
     await createSendCode({ AUTH_DEV_MODE: "true" }, h.deps)(EMAIL, CODE);
     expect(h.sent).toHaveLength(0);
     expect(h.lines.join("\n")).toContain(CODE);
+  });
+
+  test("email send failure stays a network error", async () => {
+    const h = harness(true);
+    h.deps.sendEmail = async () => {
+      throw new Error("connect ECONNREFUSED");
+    };
+    await expect(createSendCode({}, h.deps)(EMAIL, CODE)).rejects.toThrow("ECONNREFUSED");
+    const logged = h.lines.join("\n");
+    expect(logged).toContain('"error_kind":"network"');
+    expect(logged).not.toContain('"error_kind":"config"');
+    expect(logged).not.toContain(CODE);
   });
 
   test("SMTP configured: code is emailed and never logged, with or without dev mode", async () => {

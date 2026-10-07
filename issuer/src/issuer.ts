@@ -16,7 +16,8 @@ import { startTelemetry, shutdownTelemetry } from "./telemetry.ts";
 import { startHealthServer } from "./health.ts";
 import { createCorsHeaders } from "./cors.ts";
 import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
-import { devModeEnabled } from "./dev/mode.ts";
+import { logDevModeStartup } from "./dev/mode.ts";
+import { installClientErrorBoundary } from "./client-error.ts";
 import { createDevTokenHandler } from "./dev/token.ts";
 import { createSendCode } from "./password-code.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
@@ -114,11 +115,7 @@ const getCorsHeaders = createCorsHeaders(allowedOrigins);
 
 // AUTH_DEV_MODE=true (exact string) enables the dev-only conveniences:
 // POST /dev/token and logging login codes when SMTP is incomplete.
-if (devModeEnabled(process.env)) {
-  issuerLogger.warn(
-    "AUTH_DEV_MODE=true: POST /dev/token is enabled and login codes are logged when SMTP is incomplete (anyone can sign in as anyone; never enable in production)",
-  );
-}
+logDevModeStartup(process.env, issuerLogger);
 const devToken = createDevTokenHandler(process.env, {
   storage,
   users: usersStore,
@@ -141,11 +138,10 @@ const sendCode = createSendCode(process.env, {
 
 async function getUser(provider: string, identifier: string): Promise<string> {
   return tracer.startActiveSpan("issuer.get_user", async (span) => {
-    span.setAttributes({
-      "auth.provider": provider,
-    });
-
     try {
+      span.setAttributes({
+        "auth.provider": provider,
+      });
       const userId = await usersStore.getOrCreateUser(provider, identifier);
       span.setAttribute("user.id", userId);
       span.setStatus({ code: SpanStatusCode.OK });
@@ -161,6 +157,8 @@ async function getUser(provider: string, identifier: string): Promise<string> {
         provider,
       });
       throw error;
+    } finally {
+      span.end();
     }
   });
 }
@@ -189,13 +187,12 @@ const app = issuer({
     const { clientID, redirectURI, audience } = input;
 
     return tracer.startActiveSpan("issuer.allow", async (span) => {
-      span.setAttributes({
-        "auth.client_id": clientID,
-        "auth.redirect_uri": redirectURI,
-        "auth.audience": audience ?? "",
-      });
-
       try {
+        span.setAttributes({
+          "auth.client_id": clientID,
+          "auth.redirect_uri": redirectURI,
+          "auth.audience": audience ?? "",
+        });
         const clientAllowed = allowedClients.includes(clientID);
         const redirectAllowed = allowedRedirectURIs.includes(redirectURI);
         const audienceAllowed =
@@ -243,16 +240,17 @@ const app = issuer({
           redirect_uri: redirectURI,
         });
         throw error;
+      } finally {
+        span.end();
       }
     });
   },
   success: async (ctx, value) => {
     return tracer.startActiveSpan("issuer.success", async (span) => {
-      span.setAttributes({
-        "auth.provider": value.provider,
-      });
-
       try {
+        span.setAttributes({
+          "auth.provider": value.provider,
+        });
         if (value.provider === "password") {
           const userId = await getUser(value.provider, value.email);
           const subject = { user_id: userId };
@@ -278,10 +276,14 @@ const app = issuer({
           provider: value.provider,
         });
         throw error;
+      } finally {
+        span.end();
       }
     });
   },
 });
+
+installClientErrorBoundary(app);
 
 async function serveStatic(pathname: string): Promise<Response | null> {
   const entry = STATIC_FILES[pathname];
@@ -351,8 +353,8 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
   // Dev-only mint: only registered when AUTH_DEV_MODE=true
   if (devToken && url.pathname === "/dev/token") {
     return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
-      applyHttpSpan(span, request.method, url.pathname, route, requestId);
       try {
+        applyHttpSpan(span, request.method, url.pathname, route, requestId);
         const response = await devToken(request, requestId);
         finishHttpSpan(span, response.status);
         issuerLogger.info("request completed", {
@@ -390,14 +392,15 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
             },
           },
         );
+      } finally {
+        span.end();
       }
     });
   }
 
   return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
-    applyHttpSpan(span, request.method, url.pathname, route, requestId);
-
     try {
+      applyHttpSpan(span, request.method, url.pathname, route, requestId);
       const response = await app.fetch(applyPublicIssuerUrl(request), server);
 
       finishHttpSpan(span, response.status);
@@ -460,6 +463,8 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
           ...corsHeaders,
         },
       });
+    } finally {
+      span.end();
     }
   });
 }

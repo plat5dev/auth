@@ -1,5 +1,7 @@
 import { context, trace } from "@opentelemetry/api";
 
+import { markErrorLogged } from "./errors.ts";
+
 const defaultScope = "issuer";
 
 type AttributeValue = string | number | boolean;
@@ -52,6 +54,7 @@ class JsonLogger implements StructuredLogger {
   }
 
   error(message: string, error?: unknown, attributes?: AttributeRecord) {
+    if (error instanceof Error) markErrorLogged(error);
     emitLog(this.scope, "error", message, this.baseAttributes, attributes, error);
   }
 }

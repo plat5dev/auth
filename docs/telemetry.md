@@ -146,7 +146,7 @@ Write **JSON** to stdout always. No OTLP log export.
 
 | Field | Description |
 |-------|-------------|
-| `error_kind` | `auth`, `network`, `db`, `io`, `internal`, `validation` |
+| `error_kind` | `auth`, `network`, `db`, `io`, `internal`, `validation`, `config` |
 | `error_message` | Human-readable message |
 
 Do not include `error_kind` for 4xx.
