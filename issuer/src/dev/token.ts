@@ -2,6 +2,7 @@ import { SignJWT } from "jose";
 import { signingKeys } from "@openauthjs/openauth/keys";
 import type { StorageAdapter } from "@openauthjs/openauth/storage/storage";
 import type { UsersStore } from "../db/users.ts";
+import { devModeEnabled } from "./mode.ts";
 
 const ACCESS_TTL_SECS = 60 * 60;
 
@@ -45,31 +46,20 @@ function json(
   });
 }
 
-/**
- * `POST /dev/token` mints a valid token for any email, so it is opt-in:
- * enabled only when `AUTH_DEV_TOKEN` is exactly `true`. Independent of
- * `DEPLOYMENT_ENV`.
- */
-export function devTokenEnabled(
-  env: Record<string, string | undefined> = process.env,
-): boolean {
-  return env.AUTH_DEV_TOKEN === "true";
-}
-
 export type DevTokenHandler = (
   request: Request,
   requestId: string,
 ) => Promise<Response>;
 
 /**
- * Returns the `/dev/token` handler, or `null` when the mint is disabled
+ * Returns the `/dev/token` handler, or `null` unless `AUTH_DEV_MODE=true`
  * (route not registered; requests fall through to OpenAuth → 404).
  */
 export function createDevTokenHandler(
   env: Record<string, string | undefined>,
   deps: DevTokenDeps,
 ): DevTokenHandler | null {
-  if (!devTokenEnabled(env)) return null;
+  if (!devModeEnabled(env)) return null;
   return (request, requestId) => handleDevToken(request, requestId, deps);
 }
 

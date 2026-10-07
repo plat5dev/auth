@@ -85,7 +85,7 @@ DEPLOYMENT_ENV=dev
 
 The issuer always sets `service.name` and these four attributes (from the variables above or their defaults), and they win over `OTEL_RESOURCE_ATTRIBUTES`. Use the variables for them; use `OTEL_RESOURCE_ATTRIBUTES` only for other attributes.
 
-`DEPLOYMENT_ENV=prod` also makes sending a password code fail when SMTP is incomplete (see [`env.md`](env.md#password-challenge-delivery)). It does not gate `POST /dev/token`; that is `AUTH_DEV_TOKEN`.
+`DEPLOYMENT_ENV` only sets this telemetry attribute; it does not change auth behavior. The dev-only conveniences (`POST /dev/token`, logging login codes without SMTP) are gated by `AUTH_DEV_MODE=true` ([`env.md`](env.md)).
 
 ### Other
 

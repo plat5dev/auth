@@ -4,7 +4,7 @@ Self-contained Auth stack. Own network. Issuer + Postgres only.
 
 ## Quick start (dev)
 
-No mail. Password challenge codes are logged by the issuer.
+No mail. Password challenge codes are logged by the issuer, because dev compose sets `AUTH_DEV_MODE: "true"`.
 
 ```bash
 cd compose
