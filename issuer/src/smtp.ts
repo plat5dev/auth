@@ -6,6 +6,14 @@ const smtpLogger = logger.withScope("issuer.provider.password.email");
 
 let smtpTransporter: nodemailer.Transporter | undefined;
 
+/**
+ * Fail fast when SMTP_HOST is unreachable. Nodemailer's defaults (2 min connect,
+ * 30 s greeting, 10 min socket) leave the sign-in request hanging.
+ */
+export const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
+export const SMTP_GREETING_TIMEOUT_MS = 10_000;
+export const SMTP_SOCKET_TIMEOUT_MS = 30_000;
+
 export function smtpConfigured(): boolean {
   return Boolean(
     process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
@@ -39,6 +47,9 @@ export function getSmtpTransporter() {
     host,
     port,
     secure: port === 465,
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+    greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+    socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
     auth: {
       user,
       pass,
