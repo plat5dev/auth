@@ -24,7 +24,7 @@ docker compose up --build
 - Auth UI / OIDC: `http://localhost:5000`
 - JWKS: `http://localhost:5000/.well-known/jwks.json`
 - Dev: no mail — signup codes appear in issuer logs
-- Dev mint (non-prod): `POST /dev/token` with `{ "email": "…" }` → JWT + `user_id`
+- Dev mint: `POST /dev/token` with `{ "email": "…" }` → JWT + `user_id`. Only when `AUTH_DEV_TOKEN=true` (dev compose sets it; prod compose does not)
 
 ## Prod (images)
 

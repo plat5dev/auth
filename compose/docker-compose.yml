@@ -48,6 +48,8 @@ services:
       OTEL_SERVICE_NAMESPACE: auth
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       DEPLOYMENT_ENV: docker
+      # Dev-only POST /dev/token mint (any email -> valid token). Never set in prod.
+      AUTH_DEV_TOKEN: "true"
     volumes:
       - ../issuer:/app
     networks:

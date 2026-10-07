@@ -51,7 +51,8 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `AUTH_DISPLAY_NAME` | Email copy; login UI title if theme file omits `title` (default `Plat5`) |
 | `AUTH_THEME_FILE` | Optional OpenAuth Theme JSON path. Omit = bundled light theme |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Password challenge email (all three required to send; omit in dev → codes logged) |
-| `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | Resource `deployment.environment`; `prod` disables `POST /dev/token` |
+| `AUTH_DEV_TOKEN` | Exactly `true` enables the dev-only `POST /dev/token` mint (any email → valid token). Off otherwise. Never in production |
+| `DEPLOYMENT_ENV` / `OTEL_DEPLOYMENT_ENV` | Resource `deployment.environment`; `prod` also makes password-code sending fail without full SMTP |
 | `OTEL_SERVICE_NAME` | Resource `service.name` (default `issuer`) |
 | `OTEL_SERVICE_NAMESPACE` | Resource `service.namespace` (default `auth`) |
 | `OTEL_SERVICE_VERSION` | Resource `service.version` |
@@ -65,7 +66,7 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `OTEL_TRACES_SAMPLER_RATIO` | Trace sampling ratio (default `1`) |
 | `OTEL_SDK_DISABLED` | `true` → no OTLP; stdout + `/metrics` remain |
 
-Dev mint (non-prod): `POST /dev/token` `{ "email" }` → JWT + `user_id`. See [`../docs/oidc-surface.md`](../docs/oidc-surface.md).
+Dev mint (only when `AUTH_DEV_TOKEN=true`): `POST /dev/token` `{ "email" }` → JWT + `user_id`. See [`../docs/oidc-surface.md`](../docs/oidc-surface.md).
 
 Full list: [`../docs/env.md`](../docs/env.md).
 
