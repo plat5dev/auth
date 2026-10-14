@@ -19,6 +19,8 @@ import { getSmtpFrom, getSmtpTransporter, smtpConfigured } from "./smtp.ts";
 import { logDevModeStartup } from "./dev/mode.ts";
 import { installClientErrorBoundary } from "./client-error.ts";
 import { createDevTokenHandler } from "./dev/token.ts";
+import { seedDevUsers } from "./dev/users.ts";
+import { tokenProperties } from "./token-properties.ts";
 import { createSendCode } from "./password-code.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
 import { authorizeStartLocation } from "./authorize-start.ts";
@@ -116,6 +118,10 @@ const getCorsHeaders = createCorsHeaders(allowedOrigins);
 // AUTH_DEV_MODE=true (exact string) enables the dev-only conveniences:
 // POST /dev/token and logging login codes when SMTP is incomplete.
 logDevModeStartup(process.env, issuerLogger);
+const seeded = await seedDevUsers(process.env, { storage, users: usersStore });
+if (seeded.length > 0) {
+  issuerLogger.warn("AUTH_DEV_USERS: seeded password logins", { emails: seeded.join(",") });
+}
 const devToken = createDevTokenHandler(process.env, {
   storage,
   users: usersStore,
@@ -253,7 +259,7 @@ const app = issuer({
         });
         if (value.provider === "password") {
           const userId = await getUser(value.provider, value.email);
-          const subject = { user_id: userId };
+          const subject = tokenProperties(userId, value.email);
           authSuccessCounter.add(1, { provider: value.provider });
           issuerLogger.info("Authentication successful", {
             provider: value.provider,

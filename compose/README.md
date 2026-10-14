@@ -13,8 +13,8 @@ docker compose up --build
 
 | URL | Service |
 |-----|---------|
-| `http://localhost:5000` | Issuer (OIDC / Auth UI) |
-| `http://localhost:5000/.well-known/jwks.json` | JWKS |
+| `http://localhost:5401` | Issuer (OIDC / Auth UI) |
+| `http://localhost:5401/.well-known/jwks.json` | JWKS |
 
 Postgres DB `auth`. Relying parties reach JWKS via the published host URL. Do not join this network from other products.
 
@@ -23,7 +23,7 @@ Postgres DB `auth`. Relying parties reach JWKS via the published host URL. Do no
 Pull the published image (`ghcr.io/plat5dev/auth:${AUTH_VERSION}`; tags from this repo’s `v*` releases):
 
 ```bash
-cp .env.template .env   # set secrets + AUTH_VERSION=v0.1.10
+cp .env.template .env   # set secrets + AUTH_VERSION=v0.2.0
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 

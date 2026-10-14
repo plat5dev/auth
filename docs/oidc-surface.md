@@ -6,18 +6,18 @@ What Plat5 Auth exposes. Relying parties validate tokens via standard OIDC/JWT (
 
 | Surface | URL |
 |---------|-----|
-| Public issuer / UI | `http://localhost:5000` |
-| JWKS | `http://localhost:5000/.well-known/jwks.json` |
-| OIDC discovery | `http://localhost:5000/.well-known/oauth-authorization-server` (OpenAuth) |
+| Public issuer / UI | `http://localhost:5401` |
+| JWKS | `http://localhost:5401/.well-known/jwks.json` |
+| OIDC discovery | `http://localhost:5401/.well-known/oauth-authorization-server` (OpenAuth) |
 
-Published host port: **5000**. Internal health (not published): `INTERNAL_PORT` default `5001`.
+Listens on **5000**; the dev compose publishes host port **5401** (the Plat5 local port block). Internal health (not published): `INTERNAL_PORT` default `5001`.
 
 ## Token identity
 
 | Concern | Value |
 |---------|--------|
 | User id type | ULID string |
-| JWT subject properties | `{ "user_id": "<ulid>" }` |
+| JWT subject properties | `{ "user_id": "<ulid>" }`, plus `"email"` when `AUTH_TOKEN_EMAIL=true` ([`env.md`](env.md)) |
 | Claim path for user id | `properties.user_id` |
 | Signing | JWKS (`kid` in header); keys in OpenAuth storage |
 | `iss` | Request origin via OpenAuth `getRelativeUrl` (`X-Forwarded-*`). Set `PUBLIC_ISSUER_URL` to pin `iss` (and discovery) to the public origin relying parties use as `AUTH_ISSUER`. OpenAuth 0.4.3 has no `issuer:` config. |
@@ -79,4 +79,4 @@ Own Postgres. Default local DB name: `auth`. Schema `users` (accounts + `openaut
 
 ## Network boundary
 
-Own Docker network (`auth`). Do not join other products’ networks. Publish port 5000; consumers reach JWKS over host or public URL.
+Own Docker network (`auth`). Do not join other products’ networks. Publish its port 5000; consumers reach JWKS over host or public URL.

@@ -37,7 +37,7 @@ services:
       service.name: issuer
       service.namespace: auth
     ports:
-      - "5000:5000"
+      - "5401:5000"
     environment:
       DATABASE_URL: postgres://auth:auth@postgres:5432/auth?sslmode=disable
       INTERNAL_PORT: 5001
@@ -51,6 +51,8 @@ services:
       # Dev-only: POST /dev/token mint + login codes logged without SMTP
       # (anyone can sign in as anyone). Never set in prod.
       AUTH_DEV_MODE: "true"
+      # Dev-only: a password login that works without reading codes from the logs.
+      AUTH_DEV_USERS: ${AUTH_DEV_USERS:-dev@example.com:password}
     volumes:
       - ../issuer:/app
     networks:

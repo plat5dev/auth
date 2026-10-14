@@ -3,6 +3,7 @@ import { signingKeys } from "@openauthjs/openauth/keys";
 import type { StorageAdapter } from "@openauthjs/openauth/storage/storage";
 import type { UsersStore } from "../db/users.ts";
 import { devModeEnabled } from "./mode.ts";
+import { tokenProperties } from "../token-properties.ts";
 
 const ACCESS_TTL_SECS = 60 * 60;
 
@@ -148,7 +149,7 @@ export async function handleDevToken(
 
   const provider = deps.provider ?? "password";
   const userId = await deps.users.getOrCreateUser(provider, email);
-  const properties = { user_id: userId };
+  const properties = tokenProperties(userId, email);
   const subject = await resolveSubject("user", properties);
   const keys = await signingKeys(deps.storage);
   const key = keys.find((k) => !k.expired) ?? keys[0];

@@ -2,7 +2,7 @@
 
 Optional **reference OIDC IdP** (OpenAuth + password codes + JWKS) for the Plat5 product family.
 
-Self-contained: own compose network, own Postgres, own docs. Publish port `5000`; relying parties point at the host/public URL like any external IdP.
+Self-contained: own compose network, own Postgres, own docs. Listens on `5000` (dev compose publishes it on host `5401`); relying parties point at the host/public URL like any external IdP.
 
 Image: `ghcr.io/plat5dev/auth` (multi-arch). Tags are cut from **this** repo only: push a `v*` git tag → release workflow builds multi-arch and pushes. Pin with **`AUTH_VERSION`** (compose/CLI), independent of Plat5 runtime tags.
 
@@ -21,9 +21,10 @@ cd compose
 docker compose up --build
 ```
 
-- Auth UI / OIDC: `http://localhost:5000`
-- JWKS: `http://localhost:5000/.well-known/jwks.json`
+- Auth UI / OIDC: `http://localhost:5401`
+- JWKS: `http://localhost:5401/.well-known/jwks.json`
 - Dev: no mail — signup codes appear in issuer logs (needs `AUTH_DEV_MODE=true`, which dev compose sets)
+- Dev login: `AUTH_DEV_USERS=email:password,…` seeds password logins at boot (dev compose: `dev@example.com` / `password`). Only when `AUTH_DEV_MODE=true`
 - Dev mint: `POST /dev/token` with `{ "email": "…" }` → JWT + `user_id`. Only when `AUTH_DEV_MODE=true` (dev compose sets it; prod compose does not)
 
 ## Prod (images)
