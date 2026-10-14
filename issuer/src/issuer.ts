@@ -24,6 +24,7 @@ import { tokenProperties } from "./token-properties.ts";
 import { createSendCode } from "./password-code.ts";
 import { applyPublicIssuerUrl } from "./public-issuer.ts";
 import { authorizeStartLocation } from "./authorize-start.ts";
+import { withTokenType } from "./token-type.ts";
 import { loadTheme, verificationEmail } from "./theme.ts";
 
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
@@ -407,7 +408,10 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
   return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
     try {
       applyHttpSpan(span, request.method, url.pathname, route, requestId);
-      const response = await app.fetch(applyPublicIssuerUrl(request), server);
+      const response = await withTokenType(
+        request,
+        await app.fetch(applyPublicIssuerUrl(request), server),
+      );
 
       finishHttpSpan(span, response.status);
 
