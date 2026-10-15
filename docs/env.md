@@ -13,7 +13,7 @@
 | `AUTH_ALLOWED_AUDIENCES` | Audience allowlist checked on `/authorize` | Empty = any audience. Non-empty = `audience` required and must match |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins | Empty (no CORS headers) |
 | `AUTH_DISPLAY_NAME` | Password-challenge email copy, and login UI title when `AUTH_THEME_FILE` omits `title` | `Plat5` |
-| `AUTH_THEME_FILE` | Optional path to an OpenAuth Theme JSON object. Passed to `issuer({ theme })`. Omit = bundled light theme + `/static/*`. Missing file or invalid JSON fails startup. | unset |
+| `AUTH_THEME_FILE` | Optional path to an OpenAuth Theme JSON object. Passed to `issuer({ theme })`. Omit = the bundled Plat5 theme (paper and ink, the blue bar, light or dark from the system). The issuer serves `/static/wordmark.svg`, `/static/wordmark-dark.svg`, `/static/favicon.svg`, and `/static/inter-latin.woff2` for any theme to use. Missing file or invalid JSON fails startup. | unset |
 | `SMTP_HOST` | Password-challenge SMTP host | Required when sending email (no default). BYO provider or host-published MTA |
 | `SMTP_PORT` | SMTP port | `587` |
 | `SMTP_USER` / `SMTP_PASS` | SMTP auth | With `SMTP_HOST`, enables email. If any is missing, sending a code fails, unless `AUTH_DEV_MODE=true` (then the code is logged) |

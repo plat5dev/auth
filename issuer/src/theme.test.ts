@@ -12,14 +12,15 @@ describe("loadTheme", () => {
     const theme = loadTheme({ displayName: DISPLAY });
     expect(theme).toEqual(defaultTheme(DISPLAY));
     expect(theme.title).toBe(DISPLAY);
-    expect(theme.favicon).toBe("/static/p5.jpg");
-    expect(theme.logo).toEqual({ light: "/static/logo.jpg", dark: "/static/logo.jpg" });
+    expect(theme.favicon).toBe("/static/favicon.svg");
+    expect(theme.logo).toEqual({ light: "/static/wordmark.svg", dark: "/static/wordmark-dark.svg" });
+    expect(theme.background).toEqual({ light: "#f2f2ef", dark: "#0f1013" });
   });
 
   test("empty AUTH_THEME_FILE is omitted", () => {
     const theme = loadTheme({ displayName: DISPLAY, themeFile: "  " });
     expect(theme.title).toBe(DISPLAY);
-    expect(theme.favicon).toBe("/static/p5.jpg");
+    expect(theme.favicon).toBe("/static/favicon.svg");
   });
 
   test("file with title is login UI only; email still uses AUTH_DISPLAY_NAME", () => {

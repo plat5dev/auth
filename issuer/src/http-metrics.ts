@@ -22,8 +22,10 @@ const EXACT_ROUTES = new Set([
   "/userinfo",
   "/revoke",
   "/dev/token",
-  "/static/logo.jpg",
-  "/static/p5.jpg",
+  "/static/wordmark.svg",
+  "/static/wordmark-dark.svg",
+  "/static/favicon.svg",
+  "/static/inter-latin.woff2",
   "/.well-known/jwks.json",
   "/.well-known/oauth-authorization-server",
 ]);

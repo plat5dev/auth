@@ -1,30 +1,43 @@
 import { readFileSync } from "node:fs";
 import type { Theme } from "@openauthjs/openauth/ui/theme";
 
-const DEFAULT_LOGO = "/static/logo.jpg";
-const DEFAULT_FAVICON = "/static/p5.jpg";
+// Plat5's look (plat5.com): paper and ink, the blue bar, Inter. Light or dark follows
+// the system. A theme file (AUTH_THEME_FILE) replaces all of it.
+
+/** Inter, served by the issuer, for themes that want it: `font-family: "Inter Variable"`. */
+export const INTER_FONT_FACE = `@font-face {
+  font-family: "Inter Variable";
+  src: url("/static/inter-latin.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}`;
 
 export function defaultTheme(displayName: string): Theme {
   return {
     title: displayName,
-    favicon: DEFAULT_FAVICON,
+    favicon: "/static/favicon.svg",
     logo: {
-      light: DEFAULT_LOGO,
-      dark: DEFAULT_LOGO,
+      light: "/static/wordmark.svg",
+      dark: "/static/wordmark-dark.svg",
     },
     background: {
-      light: "#ffffff",
-      dark: "#ffffff",
+      light: "#f2f2ef",
+      dark: "#0f1013",
     },
     primary: {
-      light: "#000000",
-      dark: "#000000",
+      light: "#2b33f5",
+      dark: "#4a52ff",
     },
-    radius: "md",
-    css: `
-    :root { color-scheme: light; }
-    body { color: #000; background: #fff; }
-  `,
+    font: {
+      family: '"Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif',
+    },
+    radius: "sm",
+    css: `${INTER_FONT_FACE}
+:root { color-scheme: light dark; }
+[data-component="logo"] { height: 2rem; margin-bottom: 0.5rem; }
+[data-component="button"] { font-weight: 600; }
+[data-component="link"] { text-decoration-thickness: 1px; }`,
   };
 }
 

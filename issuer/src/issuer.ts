@@ -30,8 +30,10 @@ import { loadTheme, verificationEmail } from "./theme.ts";
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
 
 const STATIC_FILES: Record<string, { file: string; type: string }> = {
-  "/static/logo.jpg": { file: "logo.jpg", type: "image/jpeg" },
-  "/static/p5.jpg": { file: "p5.jpg", type: "image/jpeg" },
+  "/static/wordmark.svg": { file: "wordmark.svg", type: "image/svg+xml" },
+  "/static/wordmark-dark.svg": { file: "wordmark-dark.svg", type: "image/svg+xml" },
+  "/static/favicon.svg": { file: "favicon.svg", type: "image/svg+xml" },
+  "/static/inter-latin.woff2": { file: "inter-latin.woff2", type: "font/woff2" },
 };
 
 function envString(name: string, fallback: string): string {

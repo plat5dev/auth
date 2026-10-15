@@ -6,8 +6,8 @@ describe("normalizeRoute", () => {
     expect(normalizeRoute("/authorize")).toBe("/authorize");
     expect(normalizeRoute("/token")).toBe("/token");
     expect(normalizeRoute("/dev/token")).toBe("/dev/token");
-    expect(normalizeRoute("/static/logo.jpg")).toBe("/static/logo.jpg");
-    expect(normalizeRoute("/static/p5.jpg")).toBe("/static/p5.jpg");
+    expect(normalizeRoute("/static/wordmark.svg")).toBe("/static/wordmark.svg");
+    expect(normalizeRoute("/static/inter-latin.woff2")).toBe("/static/inter-latin.woff2");
     expect(normalizeRoute("/.well-known/jwks.json")).toBe("/.well-known/jwks.json");
     expect(normalizeRoute("/.well-known/oauth-authorization-server")).toBe(
       "/.well-known/oauth-authorization-server",
