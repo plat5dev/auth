@@ -1,6 +1,6 @@
 # Issuer
 
-Bun-based OAuth2/OIDC service for **Plat5 Auth**. Issues tokens and serves JWKS.
+Bun-based service for **Plat5 Auth**, an OAuth 2.0 issuer of signed JWT access tokens built on OpenAuth. Issues access and refresh tokens (no ID token; no name in any token) and serves JWKS and authorization server metadata (RFC 8414).
 
 ## Local development
 
@@ -41,8 +41,8 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | Var | Purpose |
 |-----|---------|
 | `DATABASE_URL` | Auth Postgres |
-| `PORT` | Public OIDC (default `5000`) |
-| `PUBLIC_ISSUER_URL` | Pin JWT `iss` + OIDC discovery (injected as `X-Forwarded-*` for OpenAuth) |
+| `PORT` | Public OAuth 2.0 + Auth UI (default `5000`) |
+| `PUBLIC_ISSUER_URL` | Pin JWT `iss` + authorization server metadata (injected as `X-Forwarded-*` for OpenAuth) |
 | `INTERNAL_PORT` | Health + `/metrics` (default `5001`) |
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (default `plat5`) |
 | `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URIs |
@@ -66,7 +66,7 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `OTEL_TRACES_SAMPLER_RATIO` | Trace sampling ratio (default `1`) |
 | `OTEL_SDK_DISABLED` | `true` → no OTLP; stdout + `/metrics` remain |
 
-Dev mint (only when `AUTH_DEV_MODE=true`): `POST /dev/token` `{ "email" }` → JWT + `user_id`. See [`../docs/oidc-surface.md`](../docs/oidc-surface.md).
+Dev mint (only when `AUTH_DEV_MODE=true`): `POST /dev/token` `{ "email" }` → JWT + `user_id`. See [`../docs/oauth-surface.md`](../docs/oauth-surface.md#dev-only-token-mint).
 
 Full list: [`../docs/env.md`](../docs/env.md).
 
