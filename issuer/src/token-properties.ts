@@ -1,6 +1,6 @@
 /**
  * The access token's subject properties. Always `user_id`. `email` only when
- * `AUTH_TOKEN_EMAIL=true` (exact string): for a staff issuer, whose relying
+ * `AUTH_TOKEN_EMAIL=true` (exact string): for an operator issuer, whose relying
  * party records who acted. A customer issuer leaves it off, so customer
  * tokens carry no email.
  */

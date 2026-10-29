@@ -18,9 +18,6 @@ const httpRequestDuration = meter.createHistogram("http_request_duration_seconds
 const EXACT_ROUTES = new Set([
   "/authorize",
   "/token",
-  "/callback",
-  "/userinfo",
-  "/revoke",
   "/dev/token",
   "/static/wordmark.svg",
   "/static/wordmark-dark.svg",

@@ -12,9 +12,9 @@ describe("parseDevUsers", () => {
   });
 
   test("pairs, lowercased emails, colons allowed in the password", () => {
-    expect(parseDevUsers("Dev@Example.com:password, staff@example.com:pass:word")).toEqual([
+    expect(parseDevUsers("Dev@Example.com:password, operator@example.com:pass:word")).toEqual([
       { email: "dev@example.com", password: "password" },
-      { email: "staff@example.com", password: "pass:word" },
+      { email: "operator@example.com", password: "pass:word" },
     ]);
   });
 

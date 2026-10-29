@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { normalizeRoute } from "./http-metrics.ts";
 
 describe("normalizeRoute", () => {
-  test("keeps served OIDC and static paths", () => {
+  test("keeps served OAuth and static paths", () => {
     expect(normalizeRoute("/authorize")).toBe("/authorize");
     expect(normalizeRoute("/token")).toBe("/token");
     expect(normalizeRoute("/dev/token")).toBe("/dev/token");
@@ -24,6 +24,9 @@ describe("normalizeRoute", () => {
   test("collapses unknown paths including scanners and other well-known suffixes", () => {
     expect(normalizeRoute("/.aws_credentials")).toBe("unmatched");
     expect(normalizeRoute("/.well-known/openid-configuration")).toBe("unmatched");
+    expect(normalizeRoute("/userinfo")).toBe("unmatched");
+    expect(normalizeRoute("/revoke")).toBe("unmatched");
+    expect(normalizeRoute("/callback")).toBe("unmatched");
     expect(normalizeRoute("/@fs/proc/self/environ")).toBe("unmatched");
     expect(normalizeRoute("/password/authorize/extra")).toBe("unmatched");
     expect(normalizeRoute("/")).toBe("unmatched");

@@ -65,7 +65,7 @@ export function createDevTokenHandler(
 }
 
 /**
- * Dev-only: mint an access token for an email without the OIDC UI flow.
+ * Dev-only: mint an access token for an email without the OAuth login flow.
  * getOrCreateUser so fixture emails stay stable across runs.
  */
 export async function handleDevToken(

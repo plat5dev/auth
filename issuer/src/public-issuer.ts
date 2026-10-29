@@ -1,6 +1,7 @@
 /**
- * OpenAuth 0.4.3 has no `issuer:` config. Real JWT `iss` and OIDC discovery
- * come from getRelativeUrl (request origin + X-Forwarded-Host/Proto/Port).
+ * OpenAuth 0.4.3 has no `issuer:` config. Real JWT `iss` and the authorization
+ * server metadata (RFC 8414) come from getRelativeUrl (request origin +
+ * X-Forwarded-Host/Proto/Port).
  *
  * When PUBLIC_ISSUER_URL is set, inject those headers so OpenAuth pins `iss`
  * to the public origin relying parties use as AUTH_ISSUER. Does not rewrite JWTs.
