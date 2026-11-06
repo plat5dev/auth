@@ -24,7 +24,7 @@ For Plat5 Auth, an optional reference OAuth 2.0 issuer of signed JWT access toke
 | `AUTH_DEV_MODE` | Enables the dev-only conveniences: the `POST /dev/token` mint ([`oauth-surface.md`](oauth-surface.md#dev-only-token-mint)), and logging login codes when SMTP is incomplete. Both let anyone sign in as **any** email, so never enable it in production. Logs a warning at boot when on | Off. Only the exact string `true` enables it. Dev compose sets it; prod compose does not |
 | `AUTH_DEV_USERS` | Dev-only seeded password logins: comma-separated `email:password` (password at least 8 characters). Set at every boot, so the env is the truth. Needs `AUTH_DEV_MODE=true`, or startup fails | Unset. Dev compose seeds `dev@example.com:password` |
 | `AUTH_TOKEN_EMAIL` | Adds `email` to the access token's subject properties (`properties.email`). For an operator issuer, whose relying party records who acted. Leave it off for customers | Off. Only the exact string `true` enables it |
-| `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md). Telemetry only; `DEPLOYMENT_ENV` does not change auth behavior | — |
+| `OTEL_*` / `DEPLOYMENT_ENV` | See [`telemetry.md`](telemetry.md). Telemetry only; `DEPLOYMENT_ENV` does not change auth behavior. A set but invalid value stops the issuer at boot, naming the variable | — |
 
 ## Password challenge delivery
 
