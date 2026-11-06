@@ -6,11 +6,10 @@ import {
 } from "@opentelemetry/semantic-conventions";
 
 import { logger } from "../logger.ts";
-import { ErrorKind } from "../errors.ts";
+import { ErrorType } from "../errors.ts";
 import type { Sql } from "../db/pool.ts";
 import { SCHEMA } from "../db/pool.ts";
 
-const storageLogger = logger.withScope("storage.postgres");
 
 export class PostgresStorage {
   private readonly SEPARATOR = String.fromCharCode(0x1f);
@@ -71,8 +70,7 @@ export class PostgresStorage {
           return result;
         } catch (error) {
           this.operationErrorCounter.add(1, attributes);
-          span.setAttribute("error", true);
-          span.setAttribute("error.kind", ErrorKind.DB);
+          span.setAttribute("error.type", ErrorType.DB);
           if (error instanceof Error) {
             span.recordException(error);
             span.setStatus({
@@ -128,12 +126,11 @@ export class PostgresStorage {
         `;
       });
     } catch (err: unknown) {
-      storageLogger.error(
+      logger.error(
         "OpenAuth storage set failed",
-        err instanceof Error ? err : undefined,
+        err,
         {
-          error: true,
-          error_kind: ErrorKind.DB,
+          error_type: ErrorType.DB,
           db_key: keyPath,
         },
       );
@@ -154,7 +151,7 @@ export class PostgresStorage {
   async *scan(prefix: string[]): AsyncIterable<[string[], unknown]> {
     const prefixStr = this.flatKey(prefix);
     const likePrefix = `${prefixStr}%`;
-    storageLogger.info("OpenAuth storage scan started", {
+    logger.info("OpenAuth storage scan started", {
       db_prefix: prefixStr,
     });
     const attributes = this.buildAttributes("scan");
@@ -177,20 +174,18 @@ export class PostgresStorage {
       }
     } catch (err: unknown) {
       this.operationErrorCounter.add(1, attributes);
-      span.setAttribute("error", true);
-      span.setAttribute("error.kind", ErrorKind.DB);
+      span.setAttribute("error.type", ErrorType.DB);
       if (err instanceof Error) {
         span.recordException(err);
         span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
       } else {
         span.setStatus({ code: SpanStatusCode.ERROR });
       }
-      storageLogger.error(
+      logger.error(
         "OpenAuth storage scan failed",
-        err instanceof Error ? err : undefined,
+        err,
         {
-          error: true,
-          error_kind: ErrorKind.DB,
+          error_type: ErrorType.DB,
           db_prefix: prefixStr,
         },
       );

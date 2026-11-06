@@ -3,10 +3,11 @@ import { join } from "node:path";
 import { issuer } from "@openauthjs/openauth";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
 import { PasswordUI } from "@openauthjs/openauth/ui/password";
-import { metrics, trace, SpanKind, SpanStatusCode, type Span } from "@opentelemetry/api";
+import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
 
 import { logger } from "./logger.ts";
-import { ErrorKind } from "./errors.ts";
+import { installConsoleCapture } from "./console.ts";
+import { ErrorType } from "./errors.ts";
 import { PostgresStorage } from "./storage/postgres.ts";
 import { connect } from "./db/pool.ts";
 import { migrate } from "./db/migrate.ts";
@@ -36,6 +37,8 @@ const STATIC_FILES: Record<string, { file: string; type: string }> = {
   "/static/inter-latin.woff2": { file: "inter-latin.woff2", type: "font/woff2" },
 };
 
+installConsoleCapture();
+
 function envString(name: string, fallback: string): string {
   const raw = process.env[name]?.trim();
   return raw ? raw : fallback;
@@ -47,10 +50,19 @@ const theme = loadTheme({
   themeFile: process.env.AUTH_THEME_FILE,
 });
 
-await startTelemetry();
+try {
+  startTelemetry();
+} catch (error) {
+  // An invalid telemetry variable stops the issuer, naming it.
+  logger.error("invalid telemetry configuration", undefined, {
+    error_message: error instanceof Error ? error.message : String(error),
+  });
+  process.exit(1);
+}
 
 // Import after telemetry starts so meters are registered with the SDK
-const { withHttpMetrics, normalizeRoute } = await import("./http-metrics.ts");
+const { withHttpMetrics } = await import("./http-metrics.ts");
+const { served } = await import("./http-server.ts");
 await import("./process-metrics.ts");
 
 const sql = connect();
@@ -60,8 +72,6 @@ const usersStore = new UsersStore(sql);
 
 const tracer = trace.getTracer("issuer.issuer");
 const meter = metrics.getMeter("issuer.issuer");
-const issuerLogger = logger.withScope("issuer");
-const passwordLogger = issuerLogger.withScope("provider.password");
 
 const authDecisionCounter = meter.createCounter("auth_decisions_total", {
   description: "Authorization decision outcomes per client",
@@ -81,13 +91,12 @@ async function runPurgeExpired() {
     const removed = await storage.purgeExpired();
     purgeExpiredCounter.add(1, { outcome: "success" });
     if (removed > 0) {
-      issuerLogger.info("Purged expired OpenAuth rows", { removed });
+      logger.info("Purged expired OpenAuth rows", { removed });
     }
   } catch (error) {
     purgeExpiredCounter.add(1, { outcome: "error" });
-    issuerLogger.error("Failed to purge expired OpenAuth rows", error, {
-      error: true,
-      error_kind: ErrorKind.DB,
+    logger.error("Failed to purge expired OpenAuth rows", error, {
+      error_type: ErrorType.DB,
     });
   }
 }
@@ -120,10 +129,10 @@ const getCorsHeaders = createCorsHeaders(allowedOrigins);
 
 // AUTH_DEV_MODE=true (exact string) enables the dev-only conveniences:
 // POST /dev/token and logging login codes when SMTP is incomplete.
-logDevModeStartup(process.env, issuerLogger);
+logDevModeStartup(process.env, logger);
 const seeded = await seedDevUsers(process.env, { storage, users: usersStore });
 if (seeded.length > 0) {
-  issuerLogger.warn("AUTH_DEV_USERS: seeded password logins", { emails: seeded.join(",") });
+  logger.warn("AUTH_DEV_USERS: seeded password logins", { emails: seeded.join(",") });
 }
 const devToken = createDevTokenHandler(process.env, {
   storage,
@@ -142,7 +151,7 @@ const sendCode = createSendCode(process.env, {
       text: mail.text,
     });
   },
-  logger: passwordLogger,
+  logger,
 });
 
 async function getUser(provider: string, identifier: string): Promise<string> {
@@ -157,12 +166,10 @@ async function getUser(provider: string, identifier: string): Promise<string> {
       return userId;
     } catch (error) {
       span.recordException(error as Error);
-      span.setAttribute("error", true);
-      span.setAttribute("error.kind", ErrorKind.DB);
+      span.setAttribute("error.type", ErrorType.DB);
       span.setStatus({ code: SpanStatusCode.ERROR });
-      issuerLogger.error("Failed to resolve user identifier", error, {
-        error: true,
-        error_kind: ErrorKind.DB,
+      logger.error("Failed to resolve user identifier", error, {
+        error_type: ErrorType.DB,
         provider,
       });
       throw error;
@@ -219,7 +226,7 @@ const app = issuer({
         span.setAttribute("auth.audience_allowed", audienceAllowed);
 
         if (!allowed) {
-          issuerLogger.warn("Authorization request denied", {
+          logger.warn("Authorization request denied", {
             client_id: clientID,
             redirect_uri: redirectURI,
             audience: audience ?? "",
@@ -228,7 +235,7 @@ const app = issuer({
             audience_allowed: audienceAllowed,
           });
         } else {
-          issuerLogger.debug("Authorization request approved", {
+          logger.debug("Authorization request approved", {
             client_id: clientID,
             redirect_uri: redirectURI,
             audience: audience ?? "",
@@ -239,12 +246,10 @@ const app = issuer({
         return allowed;
       } catch (error) {
         span.recordException(error as Error);
-        span.setAttribute("error", true);
-        span.setAttribute("error.kind", ErrorKind.Internal);
+        span.setAttribute("error.type", ErrorType.Internal);
         span.setStatus({ code: SpanStatusCode.ERROR });
-        issuerLogger.error("Authorization allow handler failed", error, {
-          error: true,
-          error_kind: ErrorKind.Internal,
+        logger.error("Authorization allow handler failed", error, {
+          error_type: ErrorType.Internal,
           client_id: clientID,
           redirect_uri: redirectURI,
         });
@@ -264,7 +269,7 @@ const app = issuer({
           const userId = await getUser(value.provider, value.email);
           const subject = tokenProperties(userId, value.email);
           authSuccessCounter.add(1, { provider: value.provider });
-          issuerLogger.info("Authentication successful", {
+          logger.info("Authentication successful", {
             provider: value.provider,
             user_id: subject.user_id,
           });
@@ -276,12 +281,10 @@ const app = issuer({
       } catch (error) {
         authFailureCounter.add(1, { provider: value.provider });
         span.recordException(error as Error);
-        span.setAttribute("error", true);
-        span.setAttribute("error.kind", ErrorKind.Auth);
+        span.setAttribute("error.type", ErrorType.Auth);
         span.setStatus({ code: SpanStatusCode.ERROR });
-        issuerLogger.error("Authentication flow failed", error, {
-          error: true,
-          error_kind: ErrorKind.Auth,
+        logger.error("Authentication flow failed", error, {
+          error_type: ErrorType.Auth,
           provider: value.provider,
         });
         throw error;
@@ -309,32 +312,28 @@ async function serveStatic(pathname: string): Promise<Response | null> {
   });
 }
 
-function applyHttpSpan(
-  span: Span,
-  method: string,
-  path: string,
-  route: string,
-  requestId: string,
-) {
-  span.setAttributes({
-    "http.request.method": method,
-    "url.path": path,
-    "http.route": route,
-    request_id: requestId,
-  });
-}
-
-function finishHttpSpan(span: Span, status: number) {
-  span.setAttribute("http.response.status_code", status);
-  if (status >= 500) {
-    span.setAttribute("error.kind", ErrorKind.Internal);
-    span.setStatus({ code: SpanStatusCode.ERROR, message: "" });
-  }
+function internalErrorResponse(requestId: string, headers: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "An unexpected error occurred",
+        request_id: requestId,
+      },
+    }),
+    {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-ID": requestId,
+        ...headers,
+      },
+    },
+  );
 }
 
 async function handleRequest(request: Request, server?: unknown): Promise<Response> {
   const requestId = request.headers.get("X-Request-ID") || randomUUID();
-  const start = performance.now();
   const url = new URL(request.url);
 
   if (request.method === "OPTIONS") {
@@ -356,129 +355,41 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
     }
   }
 
-  const route = normalizeRoute(url.pathname);
-  const spanName = `${request.method} ${route}`;
-
   // Dev-only mint: only registered when AUTH_DEV_MODE=true
   if (devToken && url.pathname === "/dev/token") {
-    return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
-      try {
-        applyHttpSpan(span, request.method, url.pathname, route, requestId);
-        const response = await devToken(request, requestId);
-        finishHttpSpan(span, response.status);
-        issuerLogger.info("request completed", {
-          request_id: requestId,
-          route: url.pathname,
-          method: request.method,
-          status: response.status,
-          duration_ms: performance.now() - start,
-        });
-        return response;
-      } catch (error) {
-        span.recordException(error as Error);
-        finishHttpSpan(span, 500);
-        issuerLogger.error("Dev token mint failed", error, {
-          error: true,
-          error_kind: ErrorKind.Internal,
-          request_id: requestId,
-          route: url.pathname,
-          method: request.method,
-          duration_ms: performance.now() - start,
-        });
-        return new Response(
-          JSON.stringify({
-            error: {
-              code: "INTERNAL_ERROR",
-              message: "An unexpected error occurred",
-              request_id: requestId,
-            },
-          }),
-          {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json",
-              "X-Request-ID": requestId,
-            },
-          },
-        );
-      } finally {
-        span.end();
-      }
-    });
+    return served(
+      request,
+      requestId,
+      () => devToken(request, requestId),
+      () => internalErrorResponse(requestId, {}),
+    );
   }
 
-  return tracer.startActiveSpan(spanName, { kind: SpanKind.SERVER }, async (span) => {
-    try {
-      applyHttpSpan(span, request.method, url.pathname, route, requestId);
+  return served(
+    request,
+    requestId,
+    async () => {
       const response = await withTokenType(
         request,
         await app.fetch(applyPublicIssuerUrl(request), server),
       );
-
-      finishHttpSpan(span, response.status);
-
-      const corsHeaders = getCorsHeaders(request);
       const newHeaders = new Headers(response.headers);
-      for (const [key, value] of Object.entries(corsHeaders)) {
+      for (const [key, value] of Object.entries(getCorsHeaders(request))) {
         newHeaders.set(key, value);
       }
       newHeaders.set("X-Request-ID", requestId);
-      const startLocation = authorizeStartLocation(
-        request,
-        newHeaders.get("Location"),
-      );
+      const startLocation = authorizeStartLocation(request, newHeaders.get("Location"));
       if (startLocation !== null) {
         newHeaders.set("Location", startLocation);
       }
-      const finalResponse = new Response(response.body, {
+      return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: newHeaders,
       });
-
-      issuerLogger.info("request completed", {
-        request_id: requestId,
-        route: url.pathname,
-        method: request.method,
-        status: finalResponse.status,
-        duration_ms: performance.now() - start,
-      });
-
-      return finalResponse;
-    } catch (error) {
-      span.recordException(error as Error);
-      finishHttpSpan(span, 500);
-
-      issuerLogger.error("HTTP request handler failed", error, {
-        error: true,
-        error_kind: ErrorKind.Internal,
-        route: url.pathname,
-        method: request.method,
-        request_id: requestId,
-        duration_ms: performance.now() - start,
-      });
-
-      const errorBody = JSON.stringify({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
-          request_id: requestId,
-        },
-      });
-
-      const corsHeaders = getCorsHeaders(request);
-      return new Response(errorBody, {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Request-ID": requestId,
-          ...corsHeaders,
-        },
-      });
-    } finally {
-      span.end();
-    }
-  });
+    },
+    () => internalErrorResponse(requestId, getCorsHeaders(request)),
+  );
 }
 
 const internalPort = Number(process.env.INTERNAL_PORT ?? "5001");
@@ -493,41 +404,38 @@ const server = Bun.serve({
   fetch: withHttpMetrics(handleRequest),
 });
 
-issuerLogger.info("Issuer listening", { port: server.port, internal_port: healthServer.port });
+logger.info("Issuer listening", { port: server.port, internal_port: healthServer.port });
 
 let shuttingDown = false;
 
 async function shutdown(signal: string) {
   if (shuttingDown) return;
   shuttingDown = true;
-  issuerLogger.info("Shutting down", { signal });
+  logger.info("Shutting down", { signal });
 
   clearInterval(purgeInterval);
 
   try {
     server.stop(false);
   } catch (error) {
-    issuerLogger.error("Error stopping HTTP server", error, {
-      error: true,
-      error_kind: ErrorKind.Internal,
+    logger.error("Error stopping HTTP server", error, {
+      error_type: ErrorType.Internal,
     });
   }
 
   try {
     healthServer.stop(false);
   } catch (error) {
-    issuerLogger.error("Error stopping health server", error, {
-      error: true,
-      error_kind: ErrorKind.Internal,
+    logger.error("Error stopping health server", error, {
+      error_type: ErrorType.Internal,
     });
   }
 
   try {
     await sql.end({ timeout: 5 });
   } catch (error) {
-    issuerLogger.error("Error closing database pool", error, {
-      error: true,
-      error_kind: ErrorKind.DB,
+    logger.error("Error closing database pool", error, {
+      error_type: ErrorType.DB,
     });
   }
 
@@ -538,7 +446,7 @@ async function shutdown(signal: string) {
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
   process.once(signal, () => {
     shutdown(signal).catch((err) => {
-      console.error("Error during shutdown", err);
+      logger.error("shutdown failed", err);
       process.exit(1);
     });
   });

@@ -3,11 +3,11 @@ import { OauthError, UnknownStateError } from "@openauthjs/openauth/error";
 import {
   ConfigError,
   EmailDeliveryError,
-  ErrorKind,
+  ErrorType,
   UNEXPECTED_CLIENT_MESSAGE,
   markErrorLogged,
   wasErrorLogged,
-  type ErrorKindType,
+  type ErrorTypeValue,
 } from "./errors.ts";
 import { logger, type StructuredLogger } from "./logger.ts";
 
@@ -19,8 +19,6 @@ type ErrorLog = Pick<StructuredLogger, "error">;
  * structured log; the client only sees a generic message.
  */
 const suppressRaw = new WeakSet<object>();
-
-let consoleFilterInstalled = false;
 
 export function suppressRawTrace(error: object): void {
   suppressRaw.add(error);
@@ -43,15 +41,6 @@ export function filterConsoleErrorArgs(
   write(...args);
 }
 
-export function installRawTraceSuppression(): void {
-  if (consoleFilterInstalled) return;
-  consoleFilterInstalled = true;
-  const write = console.error.bind(console);
-  console.error = (...args: Parameters<typeof console.error>) => {
-    filterConsoleErrorArgs(args, write);
-  };
-}
-
 function clientMessage(error: Error): string {
   if (error instanceof ConfigError || error instanceof EmailDeliveryError) {
     return error.clientMessage;
@@ -59,10 +48,8 @@ function clientMessage(error: Error): string {
   return UNEXPECTED_CLIENT_MESSAGE;
 }
 
-function kindOf(error: Error): ErrorKindType {
-  if (error instanceof ConfigError) return ErrorKind.Config;
-  if (error instanceof EmailDeliveryError) return ErrorKind.Network;
-  return ErrorKind.Internal;
+function typeOf(error: Error): ErrorTypeValue {
+  return error instanceof EmailDeliveryError ? ErrorType.Network : ErrorType.Internal;
 }
 
 /**
@@ -78,16 +65,9 @@ export function toClientError(err: unknown, log: ErrorLog = logger): Error {
   const error = err instanceof Error ? err : new Error("Unknown error");
   if (!wasErrorLogged(error)) {
     if (err instanceof Error) {
-      log.error("Request failed", error, {
-        error: true,
-        error_kind: kindOf(error),
-      });
+      log.error("Request failed", error, { error_type: typeOf(error) });
     } else {
-      log.error("Request failed", undefined, {
-        error: true,
-        error_kind: ErrorKind.Internal,
-        error_message: String(err),
-      });
+      log.error("Request failed", err);
     }
     markErrorLogged(error);
   }
@@ -103,13 +83,13 @@ type ErrorBoundaryApp = {
 
 /**
  * Wrap the issuer's Hono error handler so internal/config text never reaches
- * the OAuth client, and OpenAuth's raw `console.error(err)` is dropped.
+ * the OAuth client. OpenAuth's raw `console.error(err)` of the replacement is
+ * dropped by the console capture (console.ts).
  */
 export function installClientErrorBoundary(
   app: ErrorBoundaryApp,
   log: ErrorLog = logger,
 ): void {
-  installRawTraceSuppression();
   const host = app as ErrorBoundaryApp & {
     errorHandler: (err: Error, c: unknown) => unknown;
   };

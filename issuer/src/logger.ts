@@ -2,98 +2,57 @@ import { context, trace } from "@opentelemetry/api";
 
 import { markErrorLogged } from "./errors.ts";
 
-const defaultScope = "issuer";
-
 type AttributeValue = string | number | boolean;
 type AttributeInput = AttributeValue | AttributeValue[] | null | undefined;
 type AttributeRecord = Record<string, AttributeInput>;
 type LogLevel = "debug" | "info" | "warn" | "error";
 
+/**
+ * One JSON line on stdout per call, with the fields of Plat5's telemetry
+ * contract (docs/telemetry.md): timestamp, level, message, then the line's own.
+ */
 export interface StructuredLogger {
   debug(message: string, attributes?: AttributeRecord): void;
   info(message: string, attributes?: AttributeRecord): void;
   warn(message: string, attributes?: AttributeRecord): void;
+  /**
+   * An error line. A given error adds `error_type` (`internal` unless the
+   * attributes say otherwise), `error_message`, and an exception's `stack`.
+   */
   error(message: string, error?: unknown, attributes?: AttributeRecord): void;
-  withScope(scopeSuffix: string, attributes?: AttributeRecord): StructuredLogger;
 }
 
-const consoleWriters: Record<LogLevel, (line: string) => void> = {
-  debug: (line) => console.debug(line),
-  info: (line) => console.log(line),
-  warn: (line) => console.warn(line),
-  error: (line) => console.error(line),
+export const logger: StructuredLogger = {
+  debug: (message, attributes) => emit("debug", message, attributes),
+  info: (message, attributes) => emit("info", message, attributes),
+  warn: (message, attributes) => emit("warn", message, attributes),
+  error: (message, error, attributes) => {
+    if (error instanceof Error) markErrorLogged(error);
+    emit("error", message, attributes, error);
+  },
 };
 
-export const logger = createLogger(defaultScope);
-
-export function createLogger(scope: string, baseAttributes: AttributeRecord = {}): StructuredLogger {
-  return new JsonLogger(scope, baseAttributes);
-}
-
-class JsonLogger implements StructuredLogger {
-  constructor(
-    private readonly scope: string,
-    private readonly baseAttributes: AttributeRecord = {},
-  ) {}
-
-  withScope(scopeSuffix: string, attributes: AttributeRecord = {}) {
-    const nextScope = scopeSuffix ? `${this.scope}.${scopeSuffix}` : this.scope;
-    return new JsonLogger(nextScope, { ...this.baseAttributes, ...attributes });
-  }
-
-  debug(message: string, attributes?: AttributeRecord) {
-    emitLog(this.scope, "debug", message, this.baseAttributes, attributes);
-  }
-
-  info(message: string, attributes?: AttributeRecord) {
-    emitLog(this.scope, "info", message, this.baseAttributes, attributes);
-  }
-
-  warn(message: string, attributes?: AttributeRecord) {
-    emitLog(this.scope, "warn", message, this.baseAttributes, attributes);
-  }
-
-  error(message: string, error?: unknown, attributes?: AttributeRecord) {
-    if (error instanceof Error) markErrorLogged(error);
-    emitLog(this.scope, "error", message, this.baseAttributes, attributes, error);
-  }
-}
-
-function emitLog(
-  scope: string,
-  level: LogLevel,
-  message: string,
-  baseAttributes: AttributeRecord,
-  attributes?: AttributeRecord,
-  error?: unknown,
-) {
-  const mergedAttributes: AttributeRecord = { ...baseAttributes, ...attributes };
-
-  const span = trace.getSpan(context.active());
-  if (span) {
-    const spanContext = span.spanContext();
-    mergedAttributes["trace_id"] = spanContext.traceId;
-    mergedAttributes["span_id"] = spanContext.spanId;
-  }
-
-  if (error instanceof Error) {
-    // Closed set only — never fall back to Error.name (e.g. "Error").
-    mergedAttributes["error_kind"] ??= "internal";
-    mergedAttributes["error_message"] ??= error.message;
-  }
-
-  const payload: AttributeRecord = {
+function emit(level: LogLevel, message: string, attributes?: AttributeRecord, error?: unknown) {
+  const line: AttributeRecord = {
     timestamp: new Date().toISOString(),
     level,
-    scope,
     message,
-    ...mergedAttributes,
-    ...(error instanceof Error
-      ? { stack: error.stack }
-      : error !== undefined
-        ? { error: String(error) }
-        : {}),
+    ...attributes,
   };
 
-  consoleWriters[level](JSON.stringify(payload));
+  const spanContext = trace.getSpan(context.active())?.spanContext();
+  if (spanContext && trace.isSpanContextValid(spanContext)) {
+    line["trace_id"] = spanContext.traceId;
+    line["span_id"] = spanContext.spanId;
+  }
+
+  if (error !== undefined) {
+    line["error_type"] ??= "internal";
+    line["error_message"] ??= error instanceof Error ? error.message : String(error);
+    if (error instanceof Error) {
+      line["stack"] = error.stack;
+    }
+  }
+
+  process.stdout.write(`${JSON.stringify(line)}\n`);
 }

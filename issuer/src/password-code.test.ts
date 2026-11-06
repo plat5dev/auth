@@ -35,8 +35,8 @@ describe("login code delivery", () => {
       expect(h.sent).toHaveLength(0);
       const logged = h.lines.join("\n");
       expect(logged).not.toContain(CODE);
-      expect(logged).toContain('"error_kind":"config"');
-      expect(logged).not.toContain('"error_kind":"network"');
+      expect(logged).toContain('"error_type":"internal"');
+      expect(logged).not.toContain('"error_type":"network"');
     }
   });
 
@@ -54,8 +54,8 @@ describe("login code delivery", () => {
     };
     await expect(createSendCode({}, h.deps)(EMAIL, CODE)).rejects.toThrow("ECONNREFUSED");
     const logged = h.lines.join("\n");
-    expect(logged).toContain('"error_kind":"network"');
-    expect(logged).not.toContain('"error_kind":"config"');
+    expect(logged).toContain('"error_type":"network"');
+    expect(logged).not.toContain('"error_type":"internal"');
     expect(logged).not.toContain(CODE);
   });
 

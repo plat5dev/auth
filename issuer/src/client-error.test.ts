@@ -9,7 +9,7 @@ import {
 } from "./client-error.ts";
 import {
   ConfigError,
-  ErrorKind,
+  ErrorType,
   SIGNUP_UNAVAILABLE_MESSAGE,
   UNEXPECTED_CLIENT_MESSAGE,
   markErrorLogged,
@@ -36,7 +36,7 @@ function captureLog() {
 }
 
 describe("toClientError", () => {
-  test("config errors: one config log, generic client message, no raw trace", () => {
+  test("config errors: one internal log, generic client message, no raw trace", () => {
     const cap = captureLog();
     const err = new ConfigError(SMTP_REQUIRED_MESSAGE);
     const printed: unknown[][] = [];
@@ -52,7 +52,7 @@ describe("toClientError", () => {
     expect(safe.message).not.toContain("SMTP_");
     expect(safe.message).not.toContain("AUTH_DEV_MODE");
     expect(cap.entries).toHaveLength(1);
-    expect(cap.entries[0]?.attributes?.error_kind).toBe(ErrorKind.Config);
+    expect(cap.entries[0]?.attributes?.error_type).toBe(ErrorType.Internal);
     expect((cap.entries[0]?.error as Error).message).toBe(SMTP_REQUIRED_MESSAGE);
     expect(printed).toEqual([[err]]);
 
@@ -68,7 +68,7 @@ describe("toClientError", () => {
     expect(safe.message).toBe(UNEXPECTED_CLIENT_MESSAGE);
     expect(safe.message).not.toContain("password");
     expect(cap.entries).toHaveLength(1);
-    expect(cap.entries[0]?.attributes?.error_kind).toBe(ErrorKind.Internal);
+    expect(cap.entries[0]?.attributes?.error_type).toBe(ErrorType.Internal);
     expect((cap.entries[0]?.error as Error).message).toContain("password authentication failed");
   });
 
@@ -120,7 +120,7 @@ describe("installClientErrorBoundary", () => {
     expect(seen).toEqual([SIGNUP_UNAVAILABLE_MESSAGE]);
     expect(printed).toEqual([]);
     expect(cap.entries).toHaveLength(1);
-    expect(cap.entries[0]?.attributes?.error_kind).toBe("config");
+    expect(cap.entries[0]?.attributes?.error_type).toBe("internal");
     expect(String((cap.entries[0]?.error as Error).message)).toContain("SMTP_HOST");
     expect(message).not.toContain("AUTH_DEV_MODE");
   });

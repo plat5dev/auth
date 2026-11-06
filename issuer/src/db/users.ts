@@ -6,11 +6,10 @@ import {
 } from "@opentelemetry/semantic-conventions";
 import type { Sql } from "./pool.ts";
 import { SCHEMA } from "./pool.ts";
-import { ErrorKind } from "../errors.ts";
+import { ErrorType } from "../errors.ts";
 import { logger } from "../logger.ts";
 
 const tracer = trace.getTracer("issuer.users");
-const usersLogger = logger.withScope("db.users");
 
 export class UsersStore {
   // Instruments created at construct time (after startTelemetry) so they bind to the real MeterProvider.
@@ -98,13 +97,12 @@ export class UsersStore {
         this.opCounter.add(1, { ...attrs, status: "success" });
         span.setAttribute("user.id", userId);
         span.setStatus({ code: SpanStatusCode.OK });
-        usersLogger.info("Created user", { user_id: userId, provider });
+        logger.info("Created user", { user_id: userId, provider });
         return userId;
       } catch (error) {
         this.opErrors.add(1, attrs);
         this.opCounter.add(1, { ...attrs, status: "error" });
-        span.setAttribute("error", true);
-        span.setAttribute("error.kind", ErrorKind.DB);
+        span.setAttribute("error.type", ErrorType.DB);
         if (error instanceof Error) {
           span.recordException(error);
           span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });

@@ -3,7 +3,6 @@ import { collectMetricsText } from "./telemetry.ts";
 import type { UsersStore } from "./db/users.ts";
 import type { PostgresStorage } from "./storage/postgres.ts";
 
-const healthLogger = logger.withScope("health");
 const startTime = Date.now();
 
 interface HealthCheck {
@@ -88,6 +87,6 @@ export function startHealthServer(port: number, deps: HealthDeps) {
     },
   });
 
-  healthLogger.info("Health server started", { port: server.port });
+  logger.info("Health server started", { port: server.port });
   return server;
 }

@@ -1,19 +1,17 @@
 /**
- * Standard error kinds for telemetry.
- * Used in span attributes and log fields.
- * Closed set: auth, network, db, io, internal, validation, config.
+ * The `error_type` log field and `error.type` span attribute values
+ * (Plat5's telemetry contract). Closed set.
  */
-export const ErrorKind = {
+export const ErrorType = {
   Auth: "auth",
   Network: "network",
   DB: "db",
   IO: "io",
   Internal: "internal",
   Validation: "validation",
-  Config: "config",
 } as const;
 
-export type ErrorKindType = (typeof ErrorKind)[keyof typeof ErrorKind];
+export type ErrorTypeValue = (typeof ErrorType)[keyof typeof ErrorType];
 
 /** OAuth `error_description` when a code cannot be sent because config is incomplete. */
 export const SIGNUP_UNAVAILABLE_MESSAGE = "Sign-up is temporarily unavailable.";

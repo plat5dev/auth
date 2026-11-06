@@ -2,7 +2,6 @@ import nodemailer from "nodemailer";
 import { ConfigError } from "./errors.ts";
 import { logger } from "./logger.ts";
 
-const smtpLogger = logger.withScope("issuer.provider.password.email");
 
 let smtpTransporter: nodemailer.Transporter | undefined;
 
@@ -59,7 +58,7 @@ export function getSmtpTransporter() {
     },
   });
 
-  smtpLogger.info("SMTP transport configured", { host, port });
+  logger.info("SMTP transport configured", { host, port });
   return smtpTransporter;
 }
 

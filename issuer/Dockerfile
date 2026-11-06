@@ -44,10 +44,13 @@ RUN bun install --frozen-lockfile --production
 COPY src ./src
 COPY public ./public
 
+# The release this build reports as service.version; dev without one.
+RUN bun -e 'const v = process.env.VERSION || "dev"; await Bun.write("src/version.ts", `export const version: string = ${JSON.stringify(v)};\n`)'
+
 USER app
 
 ENV PORT=5000
 ENV NODE_ENV=production
 EXPOSE 5000
 
-CMD ["bun", "start"]
+CMD ["bun", "src/issuer.ts"]
