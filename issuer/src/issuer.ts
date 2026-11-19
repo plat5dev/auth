@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { issuer } from "@openauthjs/openauth";
 import { PasswordProvider } from "@openauthjs/openauth/provider/password";
@@ -23,7 +22,8 @@ import { createDevTokenHandler } from "./dev/token.ts";
 import { seedDevUsers } from "./dev/users.ts";
 import { tokenProperties } from "./token-properties.ts";
 import { createSendCode } from "./password-code.ts";
-import { applyPublicIssuerUrl } from "./public-issuer.ts";
+import { applyPublicIssuerUrl, parsePublicIssuerUrl } from "./public-issuer.ts";
+import { resolveRequestId } from "./request-id.ts";
 import { authorizeStartLocation } from "./authorize-start.ts";
 import { withTokenType } from "./token-type.ts";
 import { loadTheme, verificationEmail } from "./theme.ts";
@@ -44,11 +44,24 @@ function envString(name: string, fallback: string): string {
   return raw ? raw : fallback;
 }
 
+function envPort(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(
+      `Invalid ${name} ${JSON.stringify(raw)}: must be a port number between 1 and 65535`,
+    );
+  }
+  return port;
+}
+
 const displayName = envString("AUTH_DISPLAY_NAME", "Plat5");
 const theme = loadTheme({
   displayName,
   themeFile: process.env.AUTH_THEME_FILE,
 });
+const publicIssuerUrl = parsePublicIssuerUrl(process.env);
 
 try {
   startTelemetry();
@@ -117,10 +130,7 @@ function csvEnv(name: string, fallback: string[]): string[] {
 }
 
 const allowedClients = csvEnv("AUTH_ALLOWED_CLIENTS", ["plat5"]);
-const allowedRedirectURIs = csvEnv("AUTH_ALLOWED_REDIRECT_URIS", [
-  "https://oauth.pstmn.io/v1/callback",
-  "http://localhost:5173/callback",
-]);
+const allowedRedirectURIs = csvEnv("AUTH_ALLOWED_REDIRECT_URIS", []);
 // Empty = no audience restriction. Non-empty = audience required and must match.
 const allowedAudiences = csvEnv("AUTH_ALLOWED_AUDIENCES", []);
 // Browser SPA origins for token refresh CORS. Empty until a client exists.
@@ -333,7 +343,7 @@ function internalErrorResponse(requestId: string, headers: Record<string, string
 }
 
 async function handleRequest(request: Request, server?: unknown): Promise<Response> {
-  const requestId = request.headers.get("X-Request-ID") || randomUUID();
+  const requestId = resolveRequestId(request.headers.get("X-Request-ID"));
   const url = new URL(request.url);
 
   if (request.method === "OPTIONS") {
@@ -371,7 +381,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
     async () => {
       const response = await withTokenType(
         request,
-        await app.fetch(applyPublicIssuerUrl(request), server),
+        await app.fetch(applyPublicIssuerUrl(request, publicIssuerUrl), server),
       );
       const newHeaders = new Headers(response.headers);
       for (const [key, value] of Object.entries(getCorsHeaders(request))) {
@@ -392,13 +402,12 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
   );
 }
 
-const internalPort = Number(process.env.INTERNAL_PORT ?? "5001");
+const internalPort = envPort("INTERNAL_PORT", 5001);
 const healthServer = startHealthServer(internalPort, {
-  storage,
-  users: usersStore,
+  checkReady: () => sql`SELECT 1`,
 });
 
-const port = Number(process.env.PORT ?? "5000");
+const port = envPort("PORT", 5000);
 const server = Bun.serve({
   port,
   fetch: withHttpMetrics(handleRequest),
@@ -416,7 +425,7 @@ async function shutdown(signal: string) {
   clearInterval(purgeInterval);
 
   try {
-    server.stop(false);
+    await server.stop(false);
   } catch (error) {
     logger.error("Error stopping HTTP server", error, {
       error_type: ErrorType.Internal,
@@ -424,7 +433,7 @@ async function shutdown(signal: string) {
   }
 
   try {
-    healthServer.stop(false);
+    await healthServer.stop(false);
   } catch (error) {
     logger.error("Error stopping health server", error, {
       error_type: ErrorType.Internal,

@@ -3,6 +3,7 @@ import { signingKeys } from "@openauthjs/openauth/keys";
 import type { StorageAdapter } from "@openauthjs/openauth/storage/storage";
 import type { UsersStore } from "../db/users.ts";
 import { devModeEnabled } from "./mode.ts";
+import { formatPublicIssuerUrl, parsePublicIssuerUrl } from "../public-issuer.ts";
 import { tokenProperties } from "../token-properties.ts";
 
 const ACCESS_TTL_SECS = 60 * 60;
@@ -27,9 +28,12 @@ async function resolveSubject(
   return `${type}:${hashHex.slice(0, 16)}`;
 }
 
-function issuerFromRequest(request: Request): string {
-  const publicUrl = process.env.PUBLIC_ISSUER_URL?.replace(/\/$/, "");
-  if (publicUrl) return publicUrl;
+function issuerFromRequest(
+  request: Request,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const parsed = parsePublicIssuerUrl(env);
+  if (parsed) return formatPublicIssuerUrl(parsed);
   return new URL(request.url).origin;
 }
 
@@ -61,7 +65,8 @@ export function createDevTokenHandler(
   deps: DevTokenDeps,
 ): DevTokenHandler | null {
   if (!devModeEnabled(env)) return null;
-  return (request, requestId) => handleDevToken(request, requestId, deps);
+  parsePublicIssuerUrl(env);
+  return (request, requestId) => handleDevToken(request, requestId, deps, env);
 }
 
 /**
@@ -72,6 +77,7 @@ export async function handleDevToken(
   request: Request,
   requestId: string,
   deps: DevTokenDeps,
+  env: Record<string, string | undefined> = process.env,
 ): Promise<Response> {
   if (request.method !== "POST") {
     return json(
@@ -173,7 +179,7 @@ export async function handleDevToken(
     type: "user",
     properties,
     aud: clientIdRaw,
-    iss: issuerFromRequest(request),
+    iss: issuerFromRequest(request, env),
     sub: subject,
   })
     .setExpirationTime(now + ACCESS_TTL_SECS)

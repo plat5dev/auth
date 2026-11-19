@@ -17,19 +17,37 @@ export async function withTokenType(
     return response;
   }
 
-  const body = (await response.json()) as Record<string, unknown> | null;
+  const text = await response.text();
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return new Response(text, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
   if (
     body === null ||
     typeof body !== "object" ||
-    typeof body.access_token !== "string" ||
+    Array.isArray(body) ||
+    typeof (body as Record<string, unknown>).access_token !== "string" ||
     "token_type" in body
   ) {
-    return Response.json(body, response);
+    return new Response(text, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   }
-  const headers = new Headers(response.headers);
-  headers.delete("Content-Length");
+
   return Response.json(
-    { ...body, token_type: "Bearer" },
+    { ...(body as Record<string, unknown>), token_type: "Bearer" },
     { status: response.status, statusText: response.statusText, headers },
   );
 }

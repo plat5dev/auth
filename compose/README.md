@@ -33,7 +33,7 @@ Build the issuer image from this checkout instead of pulling:
 docker compose -f docker-compose.prod.yml -f docker-compose.prod.build.yml --env-file .env up --build -d
 ```
 
-Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `AUTH_ALLOWED_REDIRECT_URIS` (prod compose defaults to empty → deny all OAuth authorize). Optional: `PUBLIC_ISSUER_URL` (pins JWT `iss` / authorization server metadata behind a proxy), other `SMTP_*`, client allowlists, `AUTH_THEME_FILE` (OpenAuth Theme JSON; bind-mount the file, e.g. `./theme.json:/config/theme.json:ro` and `AUTH_THEME_FILE=/config/theme.json`).
+Required: `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `PUBLIC_ISSUER_URL` (pins JWT `iss` / authorization server metadata behind a proxy), `AUTH_ALLOWED_REDIRECT_URIS`. Binds `127.0.0.1:5000` by default (override with `AUTH_BIND_ADDR`); terminate TLS in a reverse proxy on the host. Optional: other `SMTP_*`, client/audience/origin allowlists, `AUTH_TOKEN_EMAIL`, `OTEL_*`, `AUTH_THEME_FILE` (OpenAuth Theme JSON; bind-mount the file, e.g. `./theme.json:/config/theme.json:ro` and `AUTH_THEME_FILE=/config/theme.json`).
 
 **Mail is not bundled.** Set `SMTP_*` to any SMTP server (hosted provider, or a host-published local MTA). The issuer gives up on an unreachable server after 10 s (connect and greeting; 30 s socket idle); the user sees "Sign-up is temporarily unavailable." and the cause is in the issuer log. Host SMTP: `SMTP_HOST=host.docker.internal` (prod compose already sets `extra_hosts: ["host.docker.internal:host-gateway"]` on the issuer).
 

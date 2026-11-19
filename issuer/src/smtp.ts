@@ -13,9 +13,23 @@ export const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
 export const SMTP_GREETING_TIMEOUT_MS = 10_000;
 export const SMTP_SOCKET_TIMEOUT_MS = 30_000;
 
+export function parseSmtpPort(raw: string | undefined): number {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return 587;
+  }
+  const port = Number(trimmed);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new ConfigError("SMTP_PORT must be a valid port number");
+  }
+  return port;
+}
+
 export function smtpConfigured(): boolean {
   return Boolean(
-    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
+    process.env.SMTP_HOST?.trim() &&
+      process.env.SMTP_USER?.trim() &&
+      process.env.SMTP_PASS,
   );
 }
 
@@ -24,9 +38,9 @@ export function getSmtpTransporter() {
     return smtpTransporter;
   }
 
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? "587");
-  const user = process.env.SMTP_USER;
+  const host = process.env.SMTP_HOST?.trim();
+  const port = parseSmtpPort(process.env.SMTP_PORT);
+  const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASS;
 
   if (!host) {
@@ -34,10 +48,6 @@ export function getSmtpTransporter() {
   }
   if (!user || !pass) {
     throw new ConfigError("SMTP_USER and SMTP_PASS must be set to send email codes");
-  }
-
-  if (!Number.isFinite(port)) {
-    throw new ConfigError("SMTP_PORT must be a valid number");
   }
 
   const tlsInsecure = process.env.SMTP_TLS_INSECURE === "true";
@@ -63,5 +73,6 @@ export function getSmtpTransporter() {
 }
 
 export function getSmtpFrom() {
-  return process.env.SMTP_FROM ?? "noreply@plat5.test";
+  const raw = process.env.SMTP_FROM?.trim();
+  return raw ? raw : "noreply@plat5.test";
 }

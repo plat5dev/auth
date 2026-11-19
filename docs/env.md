@@ -9,9 +9,9 @@ For Plat5 Auth, an optional reference OAuth 2.0 issuer of signed JWT access toke
 | `DATABASE_URL` | Postgres for users + OpenAuth storage | Required |
 | `PORT` | Public OAuth 2.0 / Auth UI port | `5000` |
 | `INTERNAL_PORT` | Internal health + `/metrics` (not public) | `5001` |
-| `PUBLIC_ISSUER_URL` | Pins JWT `iss` and the authorization server metadata to this origin (OpenAuth 0.4.3 has no `issuer:` option; the issuer injects `X-Forwarded-*` so `getRelativeUrl` uses it). Also used by `POST /dev/token` when enabled. Set this when the request origin is the container hostname, otherwise `iss` is the container origin and relying-party `AUTH_ISSUER` checks 401. | Optional; trailing slash stripped |
+| `PUBLIC_ISSUER_URL` | Pins JWT `iss` and the authorization server metadata to this origin (OpenAuth 0.4.3 has no `issuer:` option; the issuer injects `X-Forwarded-*` so `getRelativeUrl` uses it). Also used by `POST /dev/token` when enabled. Set this when the request origin is the container hostname, otherwise `iss` is the container origin and relying-party `AUTH_ISSUER` checks 401. | Optional (required in prod compose); must be `http://` or `https://` when set; trailing slash stripped |
 | `AUTH_ALLOWED_CLIENTS` | OAuth client IDs (comma-separated) | `plat5` |
-| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | Code default: Postman + localhost. Prod compose interpolates unset to empty string → empty allowlist → deny all `/authorize`. Required in production. |
+| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist | Empty (deny all `/authorize`); explicit opt-in required. Dev compose defaults to `http://localhost:5173/callback`; required in prod compose. |
 | `AUTH_ALLOWED_AUDIENCES` | Audience allowlist checked on `/authorize` | Empty = any audience. Non-empty = `audience` required and must match |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins | Empty (no CORS headers) |
 | `AUTH_DISPLAY_NAME` | Password-challenge email copy, and login UI title when `AUTH_THEME_FILE` omits `title` | `Plat5` |

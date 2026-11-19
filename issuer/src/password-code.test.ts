@@ -1,4 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { metrics } from "@opentelemetry/api";
+import {
+  PrometheusExporter,
+  PrometheusSerializer,
+} from "@opentelemetry/exporter-prometheus";
+import { MeterProvider } from "@opentelemetry/sdk-metrics";
 
 import { createSendCode, SMTP_REQUIRED_MESSAGE, type SendCodeDeps } from "./password-code.ts";
 
@@ -60,5 +66,33 @@ describe("login code delivery", () => {
       expect(h.sent).toEqual([{ email: EMAIL, code: CODE }]);
       expect(h.lines.join("\n")).not.toContain(CODE);
     }
+  });
+});
+
+describe("auth_password_codes_total metric", () => {
+  let provider: MeterProvider | undefined;
+
+  afterEach(async () => {
+    metrics.disable();
+    await provider?.shutdown();
+    provider = undefined;
+  });
+
+  test("records counts after metrics.setGlobalMeterProvider is installed", async () => {
+    metrics.disable();
+    const prometheus = new PrometheusExporter({ preventServerStart: true });
+    provider = new MeterProvider({ readers: [prometheus] });
+    metrics.setGlobalMeterProvider(provider);
+
+    const logHarness = harness(false);
+    await createSendCode({ AUTH_DEV_MODE: "true" }, logHarness.deps)(EMAIL, CODE);
+
+    const emailHarness = harness(true);
+    await createSendCode({}, emailHarness.deps)(EMAIL, CODE);
+
+    const { resourceMetrics } = await prometheus.collect();
+    const text = new PrometheusSerializer("", false).serialize(resourceMetrics);
+    expect(text).toMatch(/auth_password_codes_total\{[^}]*delivery_method="log"[^}]*\} 1/);
+    expect(text).toMatch(/auth_password_codes_total\{[^}]*delivery_method="email"[^}]*\} 1/);
   });
 });

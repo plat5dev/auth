@@ -5,7 +5,7 @@ import { createSubjects } from "@openauthjs/openauth/subject";
 import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import { object, string } from "valibot";
 
-import { applyPublicIssuerUrl } from "./public-issuer.ts";
+import { applyPublicIssuerUrl, parsePublicIssuerUrl } from "./public-issuer.ts";
 
 const PUBLIC_ISSUER = "https://auth.example.com";
 const CONTAINER_ORIGIN = "http://127.0.0.1:5000";
@@ -15,9 +15,31 @@ afterEach(() => {
 });
 
 describe("applyPublicIssuerUrl", () => {
-  test("is a no-op when PUBLIC_ISSUER_URL is unset", () => {
+  test("is a no-op when PUBLIC_ISSUER_URL is unset or whitespace-only", () => {
     const request = new Request(`${CONTAINER_ORIGIN}/token`);
     expect(applyPublicIssuerUrl(request)).toBe(request);
+
+    process.env.PUBLIC_ISSUER_URL = "   ";
+    expect(parsePublicIssuerUrl()).toBeNull();
+    expect(applyPublicIssuerUrl(request)).toBe(request);
+  });
+
+  test("throws on invalid URL or non-http(s) scheme", () => {
+    for (const bad of [
+      "not-a-url",
+      "auth.example.com",
+      "ftp://auth.example.com",
+      "javascript:alert(1)",
+      "file:///etc/passwd",
+    ]) {
+      expect(() => parsePublicIssuerUrl({ PUBLIC_ISSUER_URL: bad })).toThrow(
+        "Invalid PUBLIC_ISSUER_URL",
+      );
+      process.env.PUBLIC_ISSUER_URL = bad;
+      expect(() => applyPublicIssuerUrl(new Request(`${CONTAINER_ORIGIN}/token`))).toThrow(
+        "Invalid PUBLIC_ISSUER_URL",
+      );
+    }
   });
 
   test("injects X-Forwarded-* from PUBLIC_ISSUER_URL, overwriting proxy headers", () => {

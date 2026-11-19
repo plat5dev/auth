@@ -57,7 +57,7 @@ Plat5 accepts any issuer of signed JWT access tokens. Point gateway env at this 
 | `AUTH_SUBJECT_CLAIM` | `properties.user_id` (OpenAuth's own `sub` is a hash of the token's properties, so it isn't stable) |
 | `AUTH_ALLOWED_AUDIENCES` | e.g. `plat5` |
 
-Local dev: [`plat5dev/cli`](https://github.com/plat5dev/cli) runs Plat5 Auth as its `auth` module, on unless `plat5.dev.yml` turns it off, in dev mode on `5401`. Self-host: [plat5dev/plat5 deploy](https://github.com/plat5dev/plat5/blob/master/docs/guides/deploy.md).
+Local dev: [`plat5dev/cli`](https://github.com/plat5dev/cli) runs Plat5 Auth as its `auth` module, on unless `plat5.local.yml` turns it off, in dev mode on `5401`. Self-host: [plat5dev/plat5 deploy](https://github.com/plat5dev/plat5/blob/master/docs/guides/deploy.md).
 
 ## License
 

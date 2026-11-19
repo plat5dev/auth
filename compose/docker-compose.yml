@@ -42,6 +42,7 @@ services:
       DATABASE_URL: postgres://auth:auth@postgres:5432/auth?sslmode=disable
       INTERNAL_PORT: 5001
       AUTH_ALLOWED_CLIENTS: ${AUTH_ALLOWED_CLIENTS:-plat5}
+      AUTH_ALLOWED_REDIRECT_URIS: ${AUTH_ALLOWED_REDIRECT_URIS:-http://localhost:5173/callback}
       AUTH_DISPLAY_NAME: ${AUTH_DISPLAY_NAME:-Plat5}
       AUTH_THEME_FILE: ${AUTH_THEME_FILE:-}
       OTEL_SERVICE_NAME: issuer
@@ -54,6 +55,7 @@ services:
       AUTH_DEV_USERS: ${AUTH_DEV_USERS:-dev@example.com:password}
     volumes:
       - ../issuer:/app
+      - /app/node_modules
     networks:
       - auth
     depends_on:

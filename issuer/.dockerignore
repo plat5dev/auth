@@ -3,6 +3,9 @@
 .env
 .env.*
 *.md
+*.test.ts
+**/*.test.ts
+.DS_Store
 node_modules/
 Dockerfile
 .dockerignore

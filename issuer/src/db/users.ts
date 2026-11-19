@@ -1,35 +1,14 @@
 import { ulid } from "ulid";
-import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
-import {
-  ATTR_DB_OPERATION_NAME,
-  ATTR_DB_SYSTEM_NAME,
-} from "@opentelemetry/semantic-conventions";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { Sql } from "./pool.ts";
-import { SCHEMA } from "./pool.ts";
+import { createDbMetrics, dbMetricAttributes, type DbMetrics } from "./metrics.ts";
 import { ErrorType } from "../errors.ts";
 import { logger } from "../logger.ts";
 
-const tracer = trace.getTracer("issuer.users");
-
 export class UsersStore {
-  // Instruments created at construct time (after startTelemetry) so they bind to the real MeterProvider.
-  private readonly meter = metrics.getMeter("issuer.users");
-  private readonly opCounter = this.meter.createCounter("db_operations_total", {
-    description: "Total database operations executed by issuer users store",
-  });
-  private readonly opErrors = this.meter.createCounter("db_operation_errors_total", {
-    description: "Total failed database operations in issuer users store",
-  });
-  private readonly opDuration = this.meter.createHistogram(
-    "db_operation_duration_seconds",
-    {
-      description: "Duration of issuer users store operations",
-      unit: "s",
-      advice: {
-        explicitBucketBoundaries: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],
-      },
-    },
-  );
+  // Instruments created at construct time (after startTelemetry) so they bind to the real providers.
+  private readonly tracer = trace.getTracer("issuer.users");
+  private readonly metrics: DbMetrics = createDbMetrics();
 
   constructor(private readonly sql: Sql) {}
 
@@ -39,14 +18,12 @@ export class UsersStore {
 
   /** Resolve or create user for provider+identifier. Returns ULID user id. */
   async getOrCreateUser(provider: string, identifier: string): Promise<string> {
-    return tracer.startActiveSpan("users.get_or_create", async (span) => {
-      const attrs = {
-        [ATTR_DB_SYSTEM_NAME]: "postgresql",
-        [ATTR_DB_OPERATION_NAME]: "get_or_create_user",
-        "db.namespace": SCHEMA,
+    return this.tracer.startActiveSpan("users.get_or_create", async (span) => {
+      const metricAttrs = dbMetricAttributes("get_or_create_user");
+      span.setAttributes({
+        ...metricAttrs,
         "auth.provider": provider,
-      };
-      span.setAttributes(attrs);
+      });
       const start = performance.now();
 
       try {
@@ -56,7 +33,6 @@ export class UsersStore {
           LIMIT 1
         `;
         if (existing[0]) {
-          this.opCounter.add(1, { ...attrs, status: "success" });
           span.setAttribute("user.id", existing[0].user_id);
           span.setStatus({ code: SpanStatusCode.OK });
           return existing[0].user_id;
@@ -85,7 +61,6 @@ export class UsersStore {
               LIMIT 1
             `;
             if (again[0]) {
-              this.opCounter.add(1, { ...attrs, status: "success" });
               span.setAttribute("user.id", again[0].user_id);
               span.setStatus({ code: SpanStatusCode.OK });
               return again[0].user_id;
@@ -94,14 +69,12 @@ export class UsersStore {
           throw insertErr;
         }
 
-        this.opCounter.add(1, { ...attrs, status: "success" });
         span.setAttribute("user.id", userId);
         span.setStatus({ code: SpanStatusCode.OK });
         logger.info("Created user", { user_id: userId, provider });
         return userId;
       } catch (error) {
-        this.opErrors.add(1, attrs);
-        this.opCounter.add(1, { ...attrs, status: "error" });
+        this.metrics.operationErrorCounter.add(1, metricAttrs);
         span.setAttribute("error.type", ErrorType.DB);
         if (error instanceof Error) {
           span.recordException(error);
@@ -111,7 +84,9 @@ export class UsersStore {
         }
         throw error;
       } finally {
-        this.opDuration.record((performance.now() - start) / 1000, attrs);
+        this.metrics.operationCounter.add(1, metricAttrs);
+        this.metrics.operationDuration.record((performance.now() - start) / 1000, metricAttrs);
+        span.end();
       }
     });
   }

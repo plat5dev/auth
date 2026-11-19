@@ -46,4 +46,28 @@ describe("AUTH_DEV_MODE gate on /dev/token", () => {
     expect(claims.aud).toBe("plat5");
     expect((claims.properties as { user_id: string }).user_id).toBe(USER_ID);
   });
+
+  test("trims and validates PUBLIC_ISSUER_URL", async () => {
+    const handler = createDevTokenHandler(
+      { AUTH_DEV_MODE: "true", PUBLIC_ISSUER_URL: "  https://auth.example.com/  " },
+      deps(),
+    );
+    const res = await handler!(mintRequest(), "req-2");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { access_token: string };
+    expect(decodeJwt(body.access_token).iss).toBe("https://auth.example.com");
+
+    expect(() =>
+      createDevTokenHandler(
+        { AUTH_DEV_MODE: "true", PUBLIC_ISSUER_URL: "ftp://bad.example.com" },
+        deps(),
+      ),
+    ).toThrow("Invalid PUBLIC_ISSUER_URL");
+    expect(() =>
+      createDevTokenHandler(
+        { AUTH_DEV_MODE: "true", PUBLIC_ISSUER_URL: "not-a-url" },
+        deps(),
+      ),
+    ).toThrow("Invalid PUBLIC_ISSUER_URL");
+  });
 });

@@ -33,7 +33,7 @@ Relying parties that map a dotted claim path to an opaque user id should use `pr
 | Env | Purpose |
 |-----|---------|
 | `AUTH_ALLOWED_CLIENTS` | Comma-separated OAuth client IDs (default `plat5`) |
-| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist (required in prod compose; unset becomes deny-all) |
+| `AUTH_ALLOWED_REDIRECT_URIS` | Redirect URI allowlist (unset defaults to empty → deny-all; required in prod compose) |
 | `AUTH_ALLOWED_ORIGINS` | Browser CORS origins |
 
 Operators set client IDs to match whatever audience / client their API gateway expects (e.g. Plat5 often uses audience `plat5`).

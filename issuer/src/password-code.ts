@@ -4,12 +4,6 @@ import { ConfigError, EmailDeliveryError, ErrorType } from "./errors.ts";
 import { devModeEnabled } from "./dev/mode.ts";
 import type { StructuredLogger } from "./logger.ts";
 
-const tracer = trace.getTracer("issuer.issuer");
-const meter = metrics.getMeter("issuer.issuer");
-const codeDispatchCounter = meter.createCounter("auth_password_codes_total", {
-  description: "One-time password challenge codes generated",
-});
-
 export const SMTP_REQUIRED_MESSAGE =
   "SMTP_HOST, SMTP_USER, and SMTP_PASS must be set to send login codes (AUTH_DEV_MODE=true logs them instead, for local dev only)";
 
@@ -32,6 +26,12 @@ export function createSendCode(
   env: Record<string, string | undefined>,
   deps: SendCodeDeps,
 ): SendCode {
+  // Created inside the factory (after startTelemetry) so instruments bind to the real MeterProvider.
+  const tracer = trace.getTracer("issuer.issuer");
+  const meter = metrics.getMeter("issuer.issuer");
+  const codeDispatchCounter = meter.createCounter("auth_password_codes_total", {
+    description: "One-time password challenge codes generated",
+  });
   const devMode = devModeEnabled(env);
   return (email, code) =>
     tracer.startActiveSpan("issuer.password.send_code", async (span) => {

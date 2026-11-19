@@ -1,6 +1,6 @@
 # ======================================================================
 # Local Stage for development
-FROM oven/bun:1 AS local
+FROM oven/bun:1.4 AS local
 
 WORKDIR /app
 
@@ -17,11 +17,9 @@ CMD ["bun", "dev"]
 
 # ======================================================================
 # Prod Stage for production
-# Note: Unlike compiled languages (Rust, Go), Bun runs TypeScript directly
-# so there's no build step needed. A separate builder stage would only be
-# useful for pruning devDependencies, but ours are just @types/* packages
-# with negligible size and no runtime impact.
-FROM oven/bun:1-slim AS prod
+# Bun runs TypeScript directly, so no build stage is needed; `--production`
+# excludes devDependencies (types, typescript) from the runtime image.
+FROM oven/bun:1.4-slim AS prod
 
 ARG VERSION=dev
 ARG REVISION=

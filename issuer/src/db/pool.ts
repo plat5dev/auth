@@ -8,14 +8,15 @@ const schemaNameRe = /^[a-z][a-z0-9_]*$/;
 
 export type Sql = ReturnType<typeof postgres>;
 
-export function connect(): Sql {
+export function connect(env: Record<string, string | undefined> = process.env): Sql {
   if (!schemaNameRe.test(SCHEMA)) {
     throw new Error(`invalid schema name ${SCHEMA}`);
   }
 
-  const url =
-    process.env.DATABASE_URL ??
-    "postgres://auth:auth@localhost:5432/auth?sslmode=disable";
+  const url = env.DATABASE_URL?.trim();
+  if (!url) {
+    throw new Error("DATABASE_URL must be set");
+  }
 
   return postgres(url, {
     max: 10,
