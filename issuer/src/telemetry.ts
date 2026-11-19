@@ -215,8 +215,7 @@ function includesOtlp(list: string[] | undefined): boolean {
 
 /**
  * The resource, in layers: Auth's defaults (the build's version among them),
- * then OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME, then the convenience
- * variables that are set.
+ * then standard OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME.
  */
 export function buildResource(env: Env = process.env): Resource {
   const defaults = resourceFromAttributes({
@@ -226,25 +225,9 @@ export function buildResource(env: Env = process.env): Resource {
     [ATTR_SERVICE_INSTANCE_ID]: get(env, "HOSTNAME") ?? hostname(),
     [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: get(env, "NODE_ENV") ?? "development",
   });
-  const overrides: Record<string, string> = {};
-  for (const [attribute, keys] of [
-    [ATTR_SERVICE_NAMESPACE, ["OTEL_SERVICE_NAMESPACE"]],
-    [ATTR_SERVICE_VERSION, ["OTEL_SERVICE_VERSION"]],
-    [ATTR_SERVICE_INSTANCE_ID, ["OTEL_SERVICE_INSTANCE_ID"]],
-    [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT, ["OTEL_DEPLOYMENT_ENV", "DEPLOYMENT_ENV"]],
-  ] as const) {
-    for (const key of keys) {
-      const value = get(env, key);
-      if (value !== undefined) {
-        overrides[attribute] = value;
-        break;
-      }
-    }
-  }
   return defaultResource()
     .merge(defaults)
-    .merge(detectResources({ detectors: [envDetector] }))
-    .merge(resourceFromAttributes(overrides));
+    .merge(detectResources({ detectors: [envDetector] }));
 }
 
 /** OpenTelemetry's own messages, a failed export among them, as JSON log lines. */

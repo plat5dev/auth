@@ -23,13 +23,7 @@ function harness(smtp: boolean) {
 
 describe("login code delivery", () => {
   test("dev mode off + incomplete SMTP: send fails and the code is not logged", async () => {
-    for (const env of [
-      {},
-      { AUTH_DEV_MODE: "1" },
-      { DEPLOYMENT_ENV: "docker" },
-      { DEPLOYMENT_ENV: "production" },
-      { DEPLOYMENT_ENV: "prod" },
-    ]) {
+    for (const env of [{}, { AUTH_DEV_MODE: "1" }]) {
       const h = harness(false);
       await expect(createSendCode(env, h.deps)(EMAIL, CODE)).rejects.toThrow(SMTP_REQUIRED_MESSAGE);
       expect(h.sent).toHaveLength(0);

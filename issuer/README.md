@@ -52,7 +52,7 @@ User ids are **ULID**. JWT subject properties: `{ "user_id" }` → claim path `p
 | `AUTH_THEME_FILE` | Optional OpenAuth Theme JSON path. Omit = bundled light theme |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Password challenge email. All three required to send; otherwise sending a code fails, unless `AUTH_DEV_MODE=true` logs it |
 | `AUTH_DEV_MODE` | Exactly `true` enables the dev-only conveniences: `POST /dev/token` mint (any email → valid token) and logging login codes when SMTP is incomplete. Off otherwise. Never in production |
-| `OTEL_*` / `DEPLOYMENT_ENV` | Telemetry: [`../docs/telemetry.md`](../docs/telemetry.md). An invalid value stops the issuer at boot, naming the variable |
+| `OTEL_*` | Telemetry: [`../docs/telemetry.md`](../docs/telemetry.md). Standard OpenTelemetry variables; an invalid value stops the issuer at boot |
 
 Dev mint (only when `AUTH_DEV_MODE=true`): `POST /dev/token` `{ "email" }` → JWT + `user_id`. See [`../docs/oauth-surface.md`](../docs/oauth-surface.md#dev-only-token-mint).
 

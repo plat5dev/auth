@@ -75,7 +75,7 @@ Other fields, `name` among them, are ignored.
 
 JWT shape matches normal access tokens (`properties.user_id`, plus `properties.email` when `AUTH_TOKEN_EMAIL=true`, `aud` = client_id, signed with the same JWKS keys). No name.
 
-**Off by default.** Unless `AUTH_DEV_MODE` is exactly `true`, the route is not registered (falls through to OpenAuth → 404). `DEPLOYMENT_ENV` has no effect on it. The same flag also makes the issuer log login codes when SMTP is incomplete ([`env.md`](env.md#password-challenge-delivery)). The dev compose file sets `AUTH_DEV_MODE: "true"`; prod compose does not. When it is on, the issuer logs a warning at boot. It mints a valid token for any email, so never enable it on a reachable deployment.
+**Off by default.** Unless `AUTH_DEV_MODE` is exactly `true`, the route is not registered (falls through to OpenAuth → 404). The same flag also makes the issuer log login codes when SMTP is incomplete ([`env.md`](env.md#password-challenge-delivery)). The dev compose file sets `AUTH_DEV_MODE: "true"`; prod compose does not. When it is on, the issuer logs a warning at boot. It mints a valid token for any email, so never enable it on a reachable deployment.
 
 Intended for local e2e / smoke tests so operators do not walk the browser + email-code flow.
 

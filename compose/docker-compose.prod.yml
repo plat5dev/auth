@@ -57,9 +57,8 @@ services:
       AUTH_DISPLAY_NAME: ${AUTH_DISPLAY_NAME:-Plat5}
       AUTH_THEME_FILE: ${AUTH_THEME_FILE:-}
       OTEL_SERVICE_NAME: issuer
-      OTEL_SERVICE_NAMESPACE: auth
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=auth,deployment.environment=prod
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      DEPLOYMENT_ENV: prod
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

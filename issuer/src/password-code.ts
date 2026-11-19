@@ -26,7 +26,7 @@ export type SendCode = (email: string, code: string) => Promise<void>;
  * - SMTP fully configured: email it.
  * - SMTP incomplete + `AUTH_DEV_MODE=true`: log it (local dev only).
  * - SMTP incomplete otherwise: fail. The code is never logged.
- * `DEPLOYMENT_ENV` has no effect.
+ * Delivery depends solely on SMTP configuration and `AUTH_DEV_MODE`.
  */
 export function createSendCode(
   env: Record<string, string | undefined>,

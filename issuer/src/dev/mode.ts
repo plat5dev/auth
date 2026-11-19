@@ -4,7 +4,7 @@
  * - logging one-time login codes when SMTP is not fully configured
  *
  * Both let anyone sign in as anyone, so dev mode is opt-in: only the exact
- * string `true` enables it. `DEPLOYMENT_ENV` has no effect on it.
+ * string `true` enables it.
  */
 export function devModeEnabled(
   env: Record<string, string | undefined> = process.env,

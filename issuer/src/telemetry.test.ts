@@ -99,17 +99,13 @@ describe("buildResource", () => {
     expect(attrs["deployment.environment"]).toBe("development");
   });
 
-  test("OTEL_RESOURCE_ATTRIBUTES overrides the defaults; a convenience variable overrides both", () => {
+  test("OTEL_RESOURCE_ATTRIBUTES overrides defaults", () => {
     process.env.OTEL_RESOURCE_ATTRIBUTES =
       "service.version=1.2.3,service.namespace=edge,deployment.environment=staging";
-    const attrs = buildResource({ OTEL_DEPLOYMENT_ENV: "prod", NODE_ENV: "production" })
-      .attributes;
+    const attrs = buildResource({}).attributes;
     expect(attrs["service.version"]).toBe("1.2.3");
     expect(attrs["service.namespace"]).toBe("edge");
-    expect(attrs["deployment.environment"]).toBe("prod");
-    expect(buildResource({ OTEL_SERVICE_VERSION: "9.9.9" }).attributes["service.version"]).toBe(
-      "9.9.9",
-    );
+    expect(attrs["deployment.environment"]).toBe("staging");
     if (saved === undefined) delete process.env.OTEL_RESOURCE_ATTRIBUTES;
     else process.env.OTEL_RESOURCE_ATTRIBUTES = saved;
   });

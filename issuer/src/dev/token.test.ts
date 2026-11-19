@@ -29,12 +29,9 @@ describe("AUTH_DEV_MODE gate on /dev/token", () => {
     expect(createDevTokenHandler({}, deps())).toBeNull();
   });
 
-  test("only the exact string true enables it (DEPLOYMENT_ENV is ignored)", () => {
+  test("only the exact string true enables it", () => {
     for (const value of ["", "1", "TRUE", "True", "yes", " true"]) {
       expect(createDevTokenHandler({ AUTH_DEV_MODE: value }, deps())).toBeNull();
-    }
-    for (const env of ["docker", "dev", "local", "production", "prod", ""]) {
-      expect(createDevTokenHandler({ DEPLOYMENT_ENV: env }, deps())).toBeNull();
     }
   });
 

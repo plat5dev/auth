@@ -45,9 +45,8 @@ services:
       AUTH_DISPLAY_NAME: ${AUTH_DISPLAY_NAME:-Plat5}
       AUTH_THEME_FILE: ${AUTH_THEME_FILE:-}
       OTEL_SERVICE_NAME: issuer
-      OTEL_SERVICE_NAMESPACE: auth
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=auth,deployment.environment=docker
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      DEPLOYMENT_ENV: docker
       # Dev-only: POST /dev/token mint + login codes logged without SMTP
       # (anyone can sign in as anyone). Never set in prod.
       AUTH_DEV_MODE: "true"
