@@ -70,4 +70,33 @@ describe("AUTH_DEV_MODE gate on /dev/token", () => {
       ),
     ).toThrow("Invalid PUBLIC_ISSUER_URL");
   });
+
+  test("defaults client_id to the first allowed client when omitted", async () => {
+    const handler = createDevTokenHandler(
+      { AUTH_DEV_MODE: "true" },
+      { ...deps(), allowedClients: ["operator-console", "cli"] },
+    );
+    const res = await handler!(mintRequest(), "req-3");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { access_token: string };
+    expect(decodeJwt(body.access_token).aud).toBe("operator-console");
+  });
+
+  test("lists allowed client_ids in 422 when client_id is not allowed", async () => {
+    const handler = createDevTokenHandler(
+      { AUTH_DEV_MODE: "true" },
+      { ...deps(), allowedClients: ["operator-console", "cli"] },
+    );
+    const req = new Request("http://127.0.0.1:5000/dev/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "op@plat5.test", client_id: "plat5" }),
+    });
+    const res = await handler!(req, "req-4");
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: { message: string } };
+    expect(body.error.message).toBe(
+      "client_id not allowed: plat5 (allowed: operator-console, cli)",
+    );
+  });
 });

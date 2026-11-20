@@ -123,7 +123,7 @@ export async function handleDevToken(
     "client_id" in body &&
     typeof (body as { client_id: unknown }).client_id === "string"
       ? (body as { client_id: string }).client_id.trim()
-      : "plat5";
+      : (deps.allowedClients[0] ?? "plat5");
 
   if (!email || !email.includes("@")) {
     return json(
@@ -140,12 +140,16 @@ export async function handleDevToken(
   }
 
   if (!deps.allowedClients.includes(clientIdRaw)) {
+    const allowedHint =
+      deps.allowedClients.length > 0
+        ? ` (allowed: ${deps.allowedClients.join(", ")})`
+        : "";
     return json(
       422,
       {
         error: {
           code: "VALIDATION_ERROR",
-          message: `client_id not allowed: ${clientIdRaw}`,
+          message: `client_id not allowed: ${clientIdRaw}${allowedHint}`,
           request_id: requestId,
         },
       },

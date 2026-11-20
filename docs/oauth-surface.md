@@ -58,7 +58,7 @@ Content-Type: application/json
 | Field | Required | Notes |
 |-------|----------|--------|
 | `email` | yes | Lowercased; `getOrCreateUser(password, email)` → stable ULID |
-| `client_id` | no | Default `plat5`; must be in `AUTH_ALLOWED_CLIENTS` |
+| `client_id` | no | Defaults to the first entry in `AUTH_ALLOWED_CLIENTS`; must be in `AUTH_ALLOWED_CLIENTS` |
 
 Other fields, `name` among them, are ignored.
 
