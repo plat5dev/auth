@@ -1,4 +1,9 @@
-import { OauthError, UnknownStateError } from "@openauthjs/openauth/error";
+import {
+  MissingParameterError,
+  OauthError,
+  UnauthorizedClientError,
+  UnknownStateError,
+} from "@openauthjs/openauth/error";
 
 import {
   ConfigError,
@@ -94,5 +99,23 @@ export function installClientErrorBoundary(
     errorHandler: (err: Error, c: unknown) => unknown;
   };
   const previous = host.errorHandler.bind(host);
-  host.onError((err, c) => previous(toClientError(err, log), c));
+  host.onError((err, c) => {
+    // RFC 6749 §4.1.2.1: never redirect the user-agent to an unvalidated or
+    // disallowed redirect_uri. OpenAuth's default error handler 302-redirects
+    // to authorization.redirect_uri even on UnauthorizedClientError and
+    // pre-allow() MissingParameterError, creating an open redirect.
+    if (err instanceof UnauthorizedClientError || err instanceof MissingParameterError) {
+      return new Response(
+        JSON.stringify({
+          error: err.error,
+          error_description: err.description,
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+    return previous(toClientError(err, log), c);
+  });
 }

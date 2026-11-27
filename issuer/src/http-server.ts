@@ -1,6 +1,6 @@
 import { context, propagation, trace, SpanKind, SpanStatusCode } from "@opentelemetry/api";
 
-import { ErrorType } from "./errors.ts";
+import { ErrorType, isDatabaseUnavailableError } from "./errors.ts";
 import { normalizeRoute } from "./http-metrics.ts";
 import { logger } from "./logger.ts";
 import { redactQuery } from "./redact.ts";
@@ -21,7 +21,7 @@ export function served(
   request: Request,
   requestId: string,
   handle: () => Promise<Response>,
-  failed: () => Response,
+  failed: (error: unknown) => Response,
 ): Promise<Response> {
   const start = performance.now();
   const url = new URL(request.url);
@@ -53,7 +53,7 @@ export function served(
       } catch (error) {
         thrown = error;
         span.recordException(error instanceof Error ? error : String(error));
-        response = failed();
+        response = failed(error);
       }
       const status = response.status;
       span.setAttribute("http.response.status_code", status);
@@ -65,12 +65,16 @@ export function served(
         duration_ms: performance.now() - start,
       };
       if (status >= 500) {
-        span.setAttribute("error.type", ErrorType.Internal);
+        const errorType =
+          thrown !== undefined && isDatabaseUnavailableError(thrown)
+            ? ErrorType.DB
+            : ErrorType.Internal;
+        span.setAttribute("error.type", errorType);
         span.setStatus({ code: SpanStatusCode.ERROR });
         logger.error(
           thrown === undefined ? "request completed" : "request failed",
           thrown,
-          { ...line, error_type: ErrorType.Internal },
+          { ...line, error_type: errorType },
         );
       } else {
         logger.info("request completed", line);

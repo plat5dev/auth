@@ -6,7 +6,7 @@ import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
 
 import { logger } from "./logger.ts";
 import { installConsoleCapture } from "./console.ts";
-import { ErrorType } from "./errors.ts";
+import { ErrorType, isDatabaseUnavailableError } from "./errors.ts";
 import { PostgresStorage } from "./storage/postgres.ts";
 import { connect } from "./db/pool.ts";
 import { migrate } from "./db/migrate.ts";
@@ -322,6 +322,40 @@ async function serveStatic(pathname: string): Promise<Response | null> {
   });
 }
 
+function serviceUnavailableResponse(
+  requestId: string,
+  headers: Record<string, string>,
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Service temporarily unavailable",
+        request_id: requestId,
+      },
+    }),
+    {
+      status: 503,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-ID": requestId,
+        ...headers,
+      },
+    },
+  );
+}
+
+function fallbackErrorResponse(
+  error: unknown,
+  requestId: string,
+  headers: Record<string, string>,
+): Response {
+  if (isDatabaseUnavailableError(error)) {
+    return serviceUnavailableResponse(requestId, headers);
+  }
+  return internalErrorResponse(requestId, headers);
+}
+
 function internalErrorResponse(requestId: string, headers: Record<string, string>): Response {
   return new Response(
     JSON.stringify({
@@ -371,7 +405,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
       request,
       requestId,
       () => devToken(request, requestId),
-      () => internalErrorResponse(requestId, {}),
+      (error) => fallbackErrorResponse(error, requestId, {}),
     );
   }
 
@@ -398,7 +432,7 @@ async function handleRequest(request: Request, server?: unknown): Promise<Respon
         headers: newHeaders,
       });
     },
-    () => internalErrorResponse(requestId, getCorsHeaders(request)),
+    (error) => fallbackErrorResponse(error, requestId, getCorsHeaders(request)),
   );
 }
 

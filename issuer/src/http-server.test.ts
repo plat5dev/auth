@@ -8,6 +8,7 @@ import {
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 
+import { isDatabaseUnavailableError } from "./errors.ts";
 import { served } from "./http-server.ts";
 
 const exporter = new InMemorySpanExporter();
@@ -118,5 +119,51 @@ describe("served", () => {
       error_type: "internal",
       error_message: "db down",
     });
+  });
+
+  test("a database unavailability throw: failed receives the error and logs error_type db", async () => {
+    const dbErr = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:5432"), {
+      code: "ECONNREFUSED",
+    });
+    const response = await served(
+      new Request("http://localhost:5401/dev/token", { method: "POST" }),
+      "r",
+      async () => {
+        throw dbErr;
+      },
+      (err) => new Response(null, { status: isDatabaseUnavailableError(err) ? 503 : 500 }),
+    );
+    expect(response.status).toBe(503);
+    const [span] = exporter.getFinishedSpans();
+    expect(span?.attributes["error.type"]).toBe("db");
+    expect(lines[0]).toMatchObject({
+      level: "error",
+      message: "request failed",
+      status: 503,
+      error_type: "db",
+    });
+  });
+});
+
+describe("isDatabaseUnavailableError", () => {
+  test("recognizes connection, timeout, SQLSTATE, cause, and AggregateError shapes", () => {
+    expect(isDatabaseUnavailableError(Object.assign(new Error("refused"), { code: "ECONNREFUSED" }))).toBe(true);
+    expect(isDatabaseUnavailableError(Object.assign(new Error("timeout"), { code: "CONNECT_TIMEOUT" }))).toBe(true);
+    expect(isDatabaseUnavailableError(Object.assign(new Error("shutdown"), { code: "57P01" }))).toBe(true);
+    expect(isDatabaseUnavailableError(Object.assign(new Error("conn"), { code: "08006" }))).toBe(true);
+    expect(
+      isDatabaseUnavailableError(
+        new Error("wrapped", {
+          cause: Object.assign(new Error("refused"), { code: "ECONNREFUSED" }),
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isDatabaseUnavailableError(
+        new AggregateError([Object.assign(new Error("refused"), { code: "ECONNREFUSED" })]),
+      ),
+    ).toBe(true);
+    expect(isDatabaseUnavailableError(new Error("something else"))).toBe(false);
+    expect(isDatabaseUnavailableError(Object.assign(new Error("unique"), { code: "23505" }))).toBe(false);
   });
 });

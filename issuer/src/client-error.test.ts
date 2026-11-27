@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { OauthError, UnknownStateError } from "@openauthjs/openauth/error";
+import {
+  MissingParameterError,
+  OauthError,
+  UnauthorizedClientError,
+  UnknownStateError,
+} from "@openauthjs/openauth/error";
 
 import {
   filterConsoleErrorArgs,
@@ -123,5 +128,37 @@ describe("installClientErrorBoundary", () => {
     expect(cap.entries[0]?.attributes?.error_type).toBe("internal");
     expect(String((cap.entries[0]?.error as Error).message)).toContain("SMTP_HOST");
     expect(message).not.toContain("AUTH_DEV_MODE");
+  });
+
+  test("UnauthorizedClientError and MissingParameterError return 400 directly instead of redirecting", async () => {
+    const cap = captureLog();
+    let delegated = false;
+    const app = {
+      errorHandler(_err: Error, _c?: unknown): unknown {
+        delegated = true;
+        return new Response(null, { status: 302, headers: { Location: "https://evil.example/steal" } });
+      },
+      onError(next: (err: Error, c: unknown) => unknown) {
+        this.errorHandler = next;
+      },
+    };
+
+    installClientErrorBoundary(app, cap.log);
+
+    const res1 = app.errorHandler(new UnauthorizedClientError("plat5", "https://evil.example/steal"), {}) as Response;
+    expect(delegated).toBe(false);
+    expect(res1.status).toBe(400);
+    expect(await res1.json()).toEqual({
+      error: "unauthorized_client",
+      error_description: "Client plat5 is not authorized to use this redirect_uri: https://evil.example/steal",
+    });
+
+    const res2 = app.errorHandler(new MissingParameterError("client_id"), {}) as Response;
+    expect(delegated).toBe(false);
+    expect(res2.status).toBe(400);
+    expect(await res2.json()).toEqual({
+      error: "invalid_request",
+      error_description: "Missing parameter: client_id",
+    });
   });
 });
